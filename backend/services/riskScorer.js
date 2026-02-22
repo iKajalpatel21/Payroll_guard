@@ -1,97 +1,142 @@
 const RiskEvent = require('../models/RiskEvent');
+const ChangeRequest = require('../models/ChangeRequest');
+const Employee = require('../models/Employee');
 
 /**
- * Calculates a risk score (0–100) for a deposit change attempt.
- * Factors:
- *  - New IP not in employee's known IPs
- *  - New device not in employee's known devices
- *  - Burst activity: ≥5 change attempts in the last 10 minutes (credential stuffing)
- *  - Velocity: multiple events in the last 1 hour
- *
- * Returns: { score, riskCodes }
+ * Calculate a risk score (0–100) for a deposit/address change attempt.
+ * Returns { score, riskCodes }
  */
-const calculateRiskScore = async (employee, ip, deviceId) => {
-  const riskCodes = [];
+const calculateRiskScore = async (employee, ip, deviceId, extraContext = {}) => {
   let score = 0;
+  const riskCodes = [];
+  const now = new Date();
 
-  // --- Factor 1: Unknown IP ---
-  const knownIP = employee.knownIPs.includes(ip);
-  if (!knownIP) {
-    riskCodes.push('ERR_LOC_NEW');
+  // ── Signal 1: Unknown IP ──────────────────────────────────────────────────
+  if (!employee.knownIPs.includes(ip)) {
     score += 30;
+    riskCodes.push('UNKNOWN_IP');
   }
 
-  // --- Factor 2: Unknown Device ---
-  const knownDevice = employee.knownDeviceIds.includes(deviceId);
-  if (!knownDevice) {
-    riskCodes.push('ERR_DEV_NOVEL');
+  // ── Signal 2: Unknown Device ──────────────────────────────────────────────
+  if (!employee.knownDeviceIds.includes(deviceId) && deviceId !== 'UNKNOWN') {
     score += 30;
+    riskCodes.push('UNKNOWN_DEVICE');
   }
 
-  // --- Factor 3: Burst Activity (credential stuffing detector) ---
-  // Count change attempts in the last 10 minutes from ANY IP/device
-  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-  const recentBurst = await RiskEvent.countDocuments({
+  // ── Signal 3: Burst Activity (≥5 attempts in 10 min) ─────────────────────
+  const tenMinAgo = new Date(now - 10 * 60 * 1000);
+  const recentCount = await RiskEvent.countDocuments({
     employeeId: employee._id,
-    action: 'DEPOSIT_CHANGE_ATTEMPT',
-    createdAt: { $gte: tenMinutesAgo },
+    createdAt: { $gte: tenMinAgo },
   });
-  if (recentBurst >= 5) {
-    riskCodes.push('ERR_VELOCITY_HIGH');
+
+  if (recentCount >= 5) {
     score += 40;
-  } else if (recentBurst >= 3) {
-    riskCodes.push('ERR_VELOCITY_MED');
+    riskCodes.push('BURST_ACTIVITY');
+  } else if (recentCount >= 3) {
     score += 15;
+    riskCodes.push('ELEVATED_FREQUENCY');
   }
 
-  // --- Factor 4: Recent Password Reset ---
-  if (employee.lastPasswordReset) {
-    const hoursSinceReset = (Date.now() - new Date(employee.lastPasswordReset).getTime()) / (1000 * 60 * 60);
-    if (hoursSinceReset < 24) {
-      riskCodes.push('ERR_PW_RESET_RECENT');
-      score += 40;
+  // ── Signal 4: Unusual Hour (midnight–6am) ─────────────────────────────────
+  const hour = now.getHours();
+  if (hour < 6 || hour >= 23) {
+    score += 20;
+    riskCodes.push('UNUSUAL_HOUR');
+  }
+
+  // ── Signal 5: Account Too New (< 30 days old) ────────────────────────────
+  const ageMs = now - employee.createdAt;
+  const ageDays = ageMs / (1000 * 60 * 60 * 24);
+  if (ageDays < 30) {
+    score += 15;
+    riskCodes.push('ACCOUNT_TOO_NEW');
+  }
+
+  // ── Signal 6: Post-Login Rush (change < 5 min after very first login) ─────
+  if (extraContext.minutesSinceLogin !== undefined && extraContext.minutesSinceLogin < 5) {
+    score += 30;
+    riskCodes.push('POST_LOGIN_RUSH');
+  }
+
+  // ── Signal 7: Multi-Fail Then Success (≥3 failed high-risk attempts in 1h) ─
+  const oneHourAgo = new Date(now - 60 * 60 * 1000);
+  const failedHighRisk = await RiskEvent.countDocuments({
+    employeeId: employee._id,
+    riskScore: { $gt: 70 },
+    createdAt: { $gte: oneHourAgo },
+  });
+  if (failedHighRisk >= 3) {
+    score += 40;
+    riskCodes.push('MULTI_FAIL_THEN_SUCCESS');
+  }
+
+  // ── Signal 8: Same Routing Number Used by Multiple Employees (Money Mule) ──
+  if (extraContext.newRoutingNumber) {
+    const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const routingMatches = await Employee.countDocuments({
+      _id: { $ne: employee._id },
+      'bankAccount.routingNumber': extraContext.newRoutingNumber,
+      updatedAt: { $gte: sevenDaysAgo },
+    });
+    if (routingMatches >= 2) {
+      score += 35;
+      riskCodes.push('NEW_ACCOUNT_SAME_ROUTING');
     }
   }
 
-  // --- Factor 4: Aggregation Pipeline – Risk Timeline ---
-  // Look at last 10 risk events; if average score is high, add penalty
-  const timeline = await RiskEvent.aggregate([
-    {
-      $match: {
-        employeeId: employee._id,
-        action: 'DEPOSIT_CHANGE_ATTEMPT',
-      },
-    },
-    { $sort: { createdAt: -1 } },
-    { $limit: 10 },
-    {
-      $group: {
-        _id: null,
-        avgScore: { $avg: '$riskScore' },
-        count: { $sum: 1 },
-      },
-    },
-  ]);
+  // ── Signal 9: IP Geo-Correlation ──────────────────────────────────────────
+  if (extraContext.geo) {
+    const { geo, newBankDetails, newAddress } = extraContext;
 
-  if (timeline.length > 0 && timeline[0].avgScore > 60) {
-    riskCodes.push('ERR_HIST_RISK');
-    score += 10;
+    // VPN / Proxy / Datacenter detection
+    if (geo.proxy || geo.hosting) {
+      score += 35;
+      riskCodes.push('VPN_DETECTED');
+    }
+
+    // Checking against Address (either the new address being updated, or current saved address)
+    const targetAddress = newAddress || employee.address;
+
+    // Only check if we have both sides
+    if (geo.countryCode && targetAddress && targetAddress.country) {
+      if (geo.countryCode.toLowerCase() !== targetAddress.country.toLowerCase() && targetAddress.country !== '') {
+        score += 40;
+        riskCodes.push('GEOGRAPHIC_MISMATCH');
+      } else if (geo.region && targetAddress.state && geo.region.toLowerCase() !== targetAddress.state.toLowerCase()) {
+        score += 20;
+        riskCodes.push('REGION_MISMATCH');
+      } else if (geo.countryCode === 'US' && !geo.proxy && !geo.hosting) {
+        // Same country, same state, residential ISP -> Trust boost
+        score -= 10;
+        riskCodes.push('GEO_MATCH_TRUST');
+      }
+    }
   }
 
-  // Cap at 100
-  score = Math.min(score, 100);
+  // ── Signal 10: High Historical Risk ───────────────────────────────────────
+  const histPipeline = [
+    { $match: { employeeId: employee._id, createdAt: { $gte: new Date(now - 30 * 24 * 60 * 60 * 1000) } } },
+    { $group: { _id: null, avgScore: { $avg: '$riskScore' } } },
+  ];
+  const [hist] = await RiskEvent.aggregate(histPipeline);
+  if (hist?.avgScore > 60) {
+    score += 10;
+    riskCodes.push('HIGH_HISTORICAL_RISK');
+  }
 
-  return { score, riskCodes };
+  return { score: Math.min(score, 100), riskCodes };
 };
 
 /**
- * Determines the decision based on score.
- * Returns: 'Allow' | 'Challenge' | 'Block'
+ * Convert a score to a verification path.
+ * Also accounts for Gemini override (BLOCK).
  */
-const getVerificationPath = (score) => {
-  if (score < 30) return 'Allow';
-  if (score <= 70) return 'Challenge';
-  return 'Block';
+const getVerificationPath = (score, geminiRecommendation = null) => {
+  if (geminiRecommendation === 'BLOCK') return 'BLOCK';
+  if (score < 30) return 'AUTO_APPROVE';
+  if (score <= 70) return 'OTP_REQUIRED';
+  return 'MANAGER_REQUIRED';
 };
 
 module.exports = { calculateRiskScore, getVerificationPath };

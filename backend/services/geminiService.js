@@ -1,59 +1,107 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-let genAI;
-const getClient = () => {
-  if (!genAI) {
-    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+/**
+ * analyzeChangePattern — full AI pattern analysis for a change event.
+ * Returns a structured verdict with confidence, summary for staff, and
+ * a plain-English message for the employee.
+ */
+const analyzeChangePattern = async (employee, event, recentHistory = []) => {
+  const fallback = {
+    verdict: 'UNCERTAIN',
+    confidence: 50,
+    patternSummary: 'Unable to analyze pattern at this time.',
+    employeeMessage: 'We detected unusual activity on your account. Please verify this was you.',
+    recommendedAction: event.riskScore > 70 ? 'MANAGER' : event.riskScore > 30 ? 'OTP' : 'AUTO_APPROVE',
+  };
+
+  if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_gemini_api_key_here') {
+    return fallback;
   }
-  return genAI;
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const historyText = recentHistory.slice(0, 15).map(e =>
+      `  • ${new Date(e.createdAt).toISOString()} | Score:${e.riskScore} | Codes:[${(e.riskCodes || []).join(',')}] | IP:${e.ip}`
+    ).join('\n') || '  No history.';
+
+    const prompt = `
+You are a bank fraud analyst AI. Analyze this payroll account change attempt and return ONLY a valid JSON object.
+
+EMPLOYEE PROFILE:
+- Name: ${employee.name}
+- Account age: ${Math.floor((Date.now() - new Date(employee.createdAt)) / 86400000)} days
+- Known IPs: ${employee.knownIPs?.length || 0}
+- Known devices: ${employee.knownDeviceIds?.length || 0}
+- Saved Address: ${employee.address?.city || 'Unknown'}, ${employee.address?.state || ''}, ${employee.address?.country || 'US'}
+
+CURRENT EVENT:
+- Risk Score: ${event.riskScore}/100
+- Risk Codes: ${(event.riskCodes || []).join(', ')}
+- IP: ${event.ip}
+- IP Geolocation: ${event.geo ? (event.geo.city + ', ' + event.geo.region + ', ' + event.geo.countryCode + ' (' + event.geo.isp + ')') : 'Unknown'}
+- Device: ${event.deviceId}
+- Time: ${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })}
+- Change type: ${event.changeType || 'BANK_ACCOUNT'}
+- Target Details: ${event.newAddress ? ('New Address: ' + event.newAddress.city + ', ' + event.newAddress.state + ', ' + event.newAddress.country) : 'Bank routing change'}
+
+RECENT HISTORY (last 15 events):
+${historyText}
+
+Return ONLY this JSON (no markdown, no explanation):
+{
+  "verdict": "LIKELY_FRAUD" | "LIKELY_GENUINE" | "UNCERTAIN",
+  "confidence": <number 0-100>,
+  "patternSummary": "<2-3 sentences for security staff explaining the pattern>",
+  "employeeMessage": "<1-2 sentences for the employee in plain English, e.g. 'A change was made from a new location. If this was you, no action needed. If not, contact HR immediately.'>",
+  "recommendedAction": "AUTO_APPROVE" | "OTP" | "MANAGER" | "BLOCK"
+}`.trim();
+
+    const result = await model.generateContent(prompt);
+    let text = result.response.text().trim();
+
+    // Strip markdown code blocks if present
+    text = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+
+    const parsed = JSON.parse(text);
+
+    // Validate fields
+    return {
+      verdict: ['LIKELY_FRAUD', 'LIKELY_GENUINE', 'UNCERTAIN'].includes(parsed.verdict) ? parsed.verdict : 'UNCERTAIN',
+      confidence: typeof parsed.confidence === 'number' ? Math.min(100, Math.max(0, parsed.confidence)) : 50,
+      patternSummary: parsed.patternSummary || fallback.patternSummary,
+      employeeMessage: parsed.employeeMessage || fallback.employeeMessage,
+      recommendedAction: ['AUTO_APPROVE', 'OTP', 'MANAGER', 'BLOCK'].includes(parsed.recommendedAction) ? parsed.recommendedAction : fallback.recommendedAction,
+    };
+  } catch (err) {
+    console.error('Gemini pattern analysis error:', err.message);
+    return fallback;
+  }
 };
 
 /**
- * Takes an array of technical risk codes and returns a friendly,
- * human-readable explanation for the employee dashboard.
- *
- * @param {string[]} riskCodes  – e.g. ['UNKNOWN_IP', 'UNKNOWN_DEVICE']
- * @param {number}   riskScore  – numeric score 0-100
- * @returns {Promise<string>}   – employee-facing sentence
+ * Legacy: simple risk explanation (used for OTP and low-risk paths).
  */
-const explainRisk = async (riskCodes, riskScore) => {
-  if (!riskCodes || riskCodes.length === 0) {
-    return 'Your request was processed normally with no unusual activity detected.';
-  }
+const explainRisk = async (riskCodes, score) => {
+  if (!riskCodes?.length) return 'This transaction appears low-risk.';
 
-  const model = getClient().getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const descriptions = {
+    UNKNOWN_IP: 'request from an unrecognized IP address',
+    UNKNOWN_DEVICE: 'request from an unrecognized device',
+    BURST_ACTIVITY: 'multiple rapid change attempts detected',
+    ELEVATED_FREQUENCY: 'higher than normal activity frequency',
+    UNUSUAL_HOUR: 'request made during unusual hours',
+    ACCOUNT_TOO_NEW: 'account was recently created',
+    POST_LOGIN_RUSH: 'change attempted very soon after logging in',
+    MULTI_FAIL_THEN_SUCCESS: 'multiple failed attempts before this request',
+    NEW_ACCOUNT_SAME_ROUTING: 'bank routing number shared with other accounts',
+    HIGH_HISTORICAL_RISK: 'history of elevated risk activity',
+  };
 
-  const prompt = `
-You are a security notification assistant for PayrollGuard, a payroll security system.
-A technical risk analysis produced the following results:
-- Risk Score: ${riskScore}/100
-- Risk Codes: ${riskCodes.join(', ')}
-
-Risk code meanings:
-- ERR_LOC_NEW: The request came from an IP address not previously used by this employee.
-- ERR_DEV_NOVEL: The request came from an unrecognized device.
-- ERR_VELOCITY_HIGH: Multiple change attempts were made in a very short time (possible credential stuffing).
-- ERR_VELOCITY_MED: Elevated change attempts in the last 10 minutes.
-- ERR_HIST_RISK: This account has a history of high-risk activity.
-- ERR_PW_RESET_RECENT: Direct deposit change requested shortly after a password reset.
-
-Write a clear, friendly, non-technical 1-2 sentence explanation that:
-1. Informs the employee what triggered the security check (translate the codes to plain English)
-2. Reassures them this is a standard security measure
-3. Does NOT use technical jargon or code names
-4. Is concise (max 50 words)
-
-Return only the explanation text, no preamble.
-`.trim();
-
-  try {
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
-  } catch (err) {
-    console.error('Gemini API error:', err.message);
-    // Fallback explanation
-    return "We've detected some unusual activity on your account. This is a precautionary security check to ensure your payroll information is safe.";
-  }
+  const parts = riskCodes.map(c => descriptions[c] || c).join('; ');
+  return `Risk score ${score}/100 — detected: ${parts}.`;
 };
 
-module.exports = { explainRisk };
+module.exports = { analyzeChangePattern, explainRisk };

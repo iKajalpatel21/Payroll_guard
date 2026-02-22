@@ -31,6 +31,14 @@ const employeeSchema = new mongoose.Schema(
       routingNumber: { type: String, default: '' },
       bankName: { type: String, default: '' },
     },
+    // Home / mailing address (changes are risk-scored like bank changes)
+    address: {
+      street:  { type: String, default: '' },
+      city:    { type: String, default: '' },
+      state:   { type: String, default: '' },
+      zip:     { type: String, default: '' },
+      country: { type: String, default: 'US' },
+    },
     // Trust-list: known devices and IPs for this employee
     knownDeviceIds: { type: [String], default: [] },
     knownIPs: { type: [String], default: [] },

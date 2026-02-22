@@ -1,35 +1,70 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
 
-const Navbar = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
-  return (
-    <nav className="navbar">
-      <div className="navbar-brand">
-        <span className="shield-icon">🛡️</span>
-        <span className="brand-name">PayrollGuard</span>
-      </div>
-      {user && (
-        <div className="navbar-links">
-          {user.role === 'employee' && <Link to="/dashboard">My Dashboard</Link>}
-          {(user.role === 'manager' || user.role === 'admin') && <Link to="/manager">Manager Portal</Link>}
-          {user.role === 'admin' && <Link to="/admin">Admin Dashboard</Link>}
-          {(user.role === 'staff' || user.role === 'admin') && <Link to="/staff" style={{ color: '#f87171' }}>🚨 Staff Center</Link>}
-          <Link to="/payroll" style={{ color: '#a78bfa' }}>💰 Payroll</Link>
-          <span className="nav-user">{user.name} · <em>{user.role}</em></span>
-          <button className="btn-logout" onClick={handleLogout}>Logout</button>
-        </div>
-      )}
-    </nav>
-  );
+const ROLE_LINKS = {
+  employee: [
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/deposit/change', label: 'Direct Deposit' },
+    { to: '/payroll', label: 'Payslips' },
+  ],
+  manager: [
+    { to: '/manager', label: 'Dashboard' },
+    { to: '/dashboard', label: 'My Portal' },
+    { to: '/payroll', label: 'Payroll' },
+  ],
+  admin: [
+    { to: '/admin', label: 'Dashboard' },
+    { to: '/dashboard', label: 'My Portal' },
+    { to: '/manager', label: 'Reviews' },
+    { to: '/payroll', label: 'Payroll' },
+    { to: '/staff', label: 'Fraud' },
+  ],
+  staff: [
+    { to: '/staff', label: 'Dashboard' },
+    { to: '/payroll', label: 'Payroll' },
+  ],
 };
 
-export default Navbar;
+export default function Navbar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  if (!user) return null;
+
+  const links = ROLE_LINKS[user.role] || ROLE_LINKS.employee;
+
+  async function handleLogout() {
+    await logout();
+    navigate('/login');
+  }
+
+  return (
+    <nav className="pg-navbar">
+      <div className="pg-navbar-inner">
+        <Link to="/" className="pg-navbar-brand">
+          <span className="pg-navbar-shield">🛡️</span>
+          <span>PayrollGuard</span>
+        </Link>
+        <div className="pg-navbar-links">
+          {links.map(l => (
+            <Link key={l.to} to={l.to}
+              className={`pg-navbar-link ${location.pathname === l.to ? 'active' : ''}`}>
+              {l.label}
+            </Link>
+          ))}
+        </div>
+        <div className="pg-navbar-right">
+          <span className="pg-navbar-user">{user.name}</span>
+          <span className={`pg-badge ${
+            user.role === 'admin' ? 'badge-danger' :
+            user.role === 'manager' ? 'badge-caution' :
+            user.role === 'staff' ? 'badge-info' : 'badge-safe'
+          }`}>{user.role}</span>
+          <button className="pg-btn pg-btn-ghost pg-btn-sm" onClick={handleLogout}>Logout</button>
+        </div>
+      </div>
+    </nav>
+  );
+}

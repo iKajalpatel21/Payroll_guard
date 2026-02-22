@@ -22,6 +22,8 @@ const StaffDashboard = () => {
   const [selectedCase, setSelectedCase] = useState(null);
   const [aiAnalysis, setAiAnalysis]   = useState('');
   const [analyzing, setAnalyzing]     = useState(false);
+  // Multi-party Approvals
+  const [multiApprovals, setMultiApprovals] = useState([]);
   // New case form
   const [newCase, setNewCase] = useState({ employeeId: '', type: 'OTHER', severity: 'MEDIUM', title: '', description: '' });
   const [showCaseForm, setShowCaseForm] = useState(false);
@@ -54,13 +56,21 @@ const StaffDashboard = () => {
     setCaseStats(statsRes.data.stats);
   }, []);
 
+  const fetchApprovals = useCallback(async () => {
+    try {
+      const { data } = await api.get('/approvals');
+      setMultiApprovals(data.requests || []);
+    } catch { setMultiApprovals([]); }
+  }, []);
+
   useEffect(() => {
     fetchAlerts();
     fetchCases();
+    fetchApprovals();
     // Poll alerts every 30 seconds
-    const interval = setInterval(fetchAlerts, 30000);
+    const interval = setInterval(() => { fetchAlerts(); fetchApprovals(); }, 30000);
     return () => clearInterval(interval);
-  }, [fetchAlerts, fetchCases]);
+  }, [fetchAlerts, fetchCases, fetchApprovals]);
 
   // ── Alert actions ────────────────────────────────────────────────────────────
   const markRead = async (id) => {
@@ -116,6 +126,15 @@ const StaffDashboard = () => {
     flash('🏦 Bank details reset and trust lists cleared.');
     setShowResetForm(false);
     setResetForm({ employeeId: '', accountNumber: '', routingNumber: '', bankName: '' });
+  };
+  const actionMulti = async (id, type) => {
+    try {
+      await api.post(`/approvals/${id}/${type}`);
+      flash(`Location-based request ${type}d.`);
+      fetchApprovals();
+    } catch (err) {
+      flash(err.response?.data?.message || `Failed to ${type}`, true);
+    }
   };
 
   return (
@@ -300,6 +319,57 @@ const StaffDashboard = () => {
           <div className="tab-panel">
             {actionMsg   && <div className="alert-success">{actionMsg}</div>}
             {actionError && <div className="alert-error">⚠️ {actionError}</div>}
+
+            {multiApprovals.length > 0 && (
+              <div className="approval-section" style={{marginBottom: 32}}>
+                <h3 style={{color: '#f59e0b', marginBottom: 16}}>🌍 Unrecognized Location Approvals ({multiApprovals.length})</h3>
+                <div className="request-grid">
+                  {multiApprovals.map(req => {
+                    const geo = req.riskEventId?.geo;
+                    const geoStr = geo ? `${geo.city}, ${geo.region}, ${geo.countryCode} (${geo.isp})` : 'Unknown Location';
+                    return (
+                      <div className="request-card" key={req._id} style={{borderColor: '#f59e0b44'}}>
+                        <div className="request-header">
+                          <div>
+                            <strong>{req.employeeId?.name}</strong>
+                            <span className="emp-email">{req.changeType === 'ADDRESS' ? '📍 Address Change' : '🏦 Bank Change'}</span>
+                          </div>
+                          <span className="risk-chip" style={{ background: '#f59e0b22', color: '#f59e0b', borderColor: '#f59e0b55' }}>
+                            {req.riskScore}/100
+                          </span>
+                        </div>
+                        
+                        <div className="request-detail">
+                          {req.changeType === 'ADDRESS' ? (
+                            <>
+                              <div className="detail-row"><span>New Address</span><span>{req.newAddress?.street}, {req.newAddress?.city}, {req.newAddress?.state}</span></div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="detail-row"><span>New Account</span><code>{req.newBankDetails?.accountNumber}</code></div>
+                              <div className="detail-row"><span>Routing</span><code>{req.newBankDetails?.routingNumber}</code></div>
+                            </>
+                          )}
+                          <div className="detail-row" style={{color: '#ef4444'}}><span>Location</span><span>{geoStr}</span></div>
+                        </div>
+
+                        {req.riskEventId?.aiExplanation && (
+                          <div className="ai-explanation sm">
+                            <span className="ai-icon">{req.riskEventId?.geminiVerdict === 'LIKELY_GENUINE' ? '✅' : '⚠️'}</span>
+                            <p>{req.riskEventId.aiExplanation}</p>
+                          </div>
+                        )}
+
+                        <div className="request-actions">
+                          <button className="btn-approve" onClick={() => actionMulti(req._id, 'approve')}>✓ Approve</button>
+                          <button className="btn-deny" onClick={() => actionMulti(req._id, 'deny')}>✗ Deny</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="tab-header">
               <h3>Account Search & Actions</h3>

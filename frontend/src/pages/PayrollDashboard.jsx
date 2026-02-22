@@ -52,6 +52,7 @@ const PayrollDashboard = () => {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchData(); }, [selectedCycle, statusFilter]);
 
   const handleRunPayroll = async () => {

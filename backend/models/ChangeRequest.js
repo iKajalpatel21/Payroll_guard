@@ -9,18 +9,35 @@ const changeRequestSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // changeType to support address changes
+    changeType: {
+      type: String,
+      enum: ['BANK_ACCOUNT', 'ADDRESS'],
+      default: 'BANK_ACCOUNT',
+    },
     // Proposed new bank details
     newBankDetails: {
-      accountNumber: { type: String, required: true },
-      routingNumber: { type: String, required: true },
+      accountNumber: { type: String, default: '' },
+      routingNumber: { type: String, default: '' },
       bankName: { type: String, default: '' },
+    },
+    // Proposed new address
+    newAddress: {
+      street: { type: String, default: '' },
+      city: { type: String, default: '' },
+      state: { type: String, default: '' },
+      zip: { type: String, default: '' },
+      country: { type: String, default: 'US' },
     },
     status: {
       type: String,
-      enum: ['PENDING_OTP', 'PENDING_MANAGER', 'APPROVED', 'DENIED', 'EXPIRED'],
+      enum: ['PENDING_OTP', 'PENDING_MANAGER', 'PENDING_MULTI_APPROVAL', 'APPROVED', 'DENIED', 'EXPIRED'],
       default: 'PENDING_OTP',
       index: true,
     },
+
+    // Approval link token for multi-party email approvals
+    approvalToken: { type: String, index: true },
     riskScore: { type: Number, required: true },
     reasonCodes: { type: [String], default: [] },
     decision: { type: String, enum: ['Allow', 'Challenge', 'Block'], required: true },

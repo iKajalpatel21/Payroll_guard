@@ -1,0 +1,618 @@
+/* ── Payroll Simulator Styles ─────────────────────────────────────────────── */
+.sim-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.speed-label {
+    color: #64748b;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.speed-label select {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    border-radius: 8px;
+    padding: 7px 12px;
+    color: #f1f5f9;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+}
+
+.sim-placeholder,
+.sim-detail-placeholder {
+    background: rgba(30, 41, 59, 0.5);
+    border: 2px dashed rgba(71, 85, 105, 0.4);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    color: #475569;
+    font-size: 14px;
+}
+
+.sim-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .sim-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Cycle blocks */
+.sim-section-title {
+    color: #64748b;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.sim-left {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cycle-block {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(71, 85, 105, 0.3);
+    border-radius: 12px;
+    padding: 14px 16px;
+    animation: fadeSlideIn 0.4s ease;
+    transition: border-color 0.2s;
+}
+
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.cycle-active {
+    border-color: rgba(56, 189, 248, 0.5);
+    box-shadow: 0 0 16px rgba(56, 189, 248, 0.1);
+}
+
+.cycle-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.cycle-label {
+    color: #38bdf8;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.cycle-date {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.emp-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.emp-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+
+.emp-row:hover {
+    background: rgba(56, 189, 248, 0.08);
+}
+
+.emp-selected {
+    background: rgba(56, 189, 248, 0.12);
+}
+
+.emp-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.emp-name-col {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 64px;
+}
+
+.emp-name-sim {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.bar-track {
+    flex: 1;
+    height: 16px;
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.bar-gross {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: stretch;
+}
+
+.bar-net {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.bar-amount {
+    min-width: 52px;
+    text-align: right;
+    font-size: 12px;
+    color: #f1f5f9;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.held-tag {
+    background: #ef444420;
+    color: #ef4444;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid #ef444440;
+}
+
+.risk-tag {
+    color: #f59e0b;
+    font-size: 12px;
+}
+
+/* Pay stub */
+.sim-right {
+    position: sticky;
+    top: 20px;
+}
+
+.pay-stub {
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.stub-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.stub-name {
+    color: #f1f5f9;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.stub-role {
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 2px;
+}
+
+.stub-cycle {
+    color: #475569;
+    font-size: 12px;
+    border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+    padding-bottom: 10px;
+}
+
+.stub-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.stub-section-title {
+    color: #64748b;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.stub-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #94a3b8;
+    padding: 2px 0;
+}
+
+.stub-row.total {
+    font-weight: 700;
+    color: #f1f5f9;
+    border-top: 1px solid rgba(71, 85, 105, 0.3);
+    padding-top: 6px;
+    margin-top: 2px;
+}
+
+.stub-row.deduction span:last-child {
+    color: #f87171;
+}
+
+
+
+
+.stub-net {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: 900;
+    color: #f1f5f9;
+    background: rgba(30, 41, 59, 0.6);
+    padding: 12px 16px;
+    border-radius: 10px;
+}
+
+/* Breakdown bars */
+.stub-breakdown {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+    height: 110px;
+    padding: 0 4px;
+}
+
+.breakdown-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.breakdown-bar-wrap {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+}
+
+.breakdown-bar {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    transition: height 0.6s ease;
+    min-height: 4px;
+}
+
+.breakdown-label {
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.breakdown-val {
+    font-size: 10px;
+    color: #64748b;
+}
+
+/* Risk */
+.stub-risk {
+    border: 1px solid;
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.stub-risk-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.stub-risk-signals {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.stub-risk-signals code {
+    background: rgba(71, 85, 105, 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.stub-risk-action {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.stub-risk-hold {
+    font-size: 12px;
+    color: #f87171;
+    margin-top: 2px;
+}
+
+.risk-score-badge {
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 6px;
+    padding: 2px 8px;
+}
+
+.stub-held-notice {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #fca5a5;
+    font-size: 13px;
+}
+
+.ytd-summary {
+    padding: 18px 20px;
+}
+
+.ytd-summary h4 {
+    color: #f1f5f9;
+    margin-bottom: 12px;
+}
+
+/* ── Cycle event tags ───────────────────────────────────────── */
+.cycle-critical {
+    border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+.cycle-event-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(71, 85, 105, 0.3);
+    color: #94a3b8;
+}
+
+.cycle-event-tag.critical {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+}
+
+.cycle-event-tag.info {
+    background: rgba(56, 189, 248, 0.15);
+    color: #7dd3fc;
+}
+
+/* ── Event strip inside cycle block ───────────────────────────── */
+.cycle-events-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(71, 85, 105, 0.25);
+}
+
+.cycle-event-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    border: 1px solid;
+    border-radius: 6px;
+    padding: 5px 10px;
+    flex-wrap: wrap;
+}
+
+.pill-emp {
+    color: #f1f5f9;
+    font-weight: 700;
+    min-width: 44px;
+}
+
+.pill-type {
+    font-weight: 600;
+}
+
+.pill-outcome {
+    font-weight: 700;
+    margin-left: auto;
+}
+
+/* ── OTP/Approved row tags ───────────────────────────────────── */
+.otp-tag {
+    background: #38bdf820;
+    color: #38bdf8;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid #38bdf840;
+}
+
+.approved-tag {
+    background: #22c55e20;
+    color: #22c55e;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid #22c55e40;
+}
+
+/* ── Incident section in stub ─────────────────────────────────── */
+.incident-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.incident-title {
+    color: #f1f5f9;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+
+.incident-card {
+    border: 1px solid;
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.incident-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.incident-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.incident-type {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.incident-outcome {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+.incident-risk {
+    margin-left: auto;
+    text-align: center;
+    font-size: 11px;
+    border-radius: 8px;
+    padding: 4px 10px;
+    flex-shrink: 0;
+    line-height: 1.3;
+}
+
+.incident-detail {
+    font-size: 12px;
+    color: #94a3b8;
+    font-style: italic;
+    padding: 6px 8px;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 6px;
+}
+
+.incident-signals {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.signal-tag {
+    background: rgba(71, 85, 105, 0.35);
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid rgba(71, 85, 105, 0.5);
+    letter-spacing: 0.3px;
+}
+
+.incident-action {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action-text {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.verdict-chip {
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 2px 10px;
+}
+
+/* Why payment was withheld */
+.hold-reason-box {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: 8px;
+    padding: 9px 12px;
+}
+
+.hold-reason-label {
+    color: #fca5a5;
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.hold-reason-text {
+    color: #f87171;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Plain-English explanation */
+.incident-explanation {
+    background: rgba(56, 189, 248, 0.06);
+    border-left: 3px solid rgba(56, 189, 248, 0.4);
+    border-radius: 0 6px 6px 0;
+    padding: 8px 12px;
+}
+
+.explanation-label {
+    color: #38bdf8;
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.explanation-text {
+    color: #94a3b8;
+    font-size: 12px;
+    line-height: 1.6;
+}
