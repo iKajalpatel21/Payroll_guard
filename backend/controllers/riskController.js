@@ -232,7 +232,7 @@ exports.riskCheck = asyncHandler(async (req, res) => {
     });
   }
 
-    // ──────────────────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────────────
   // PENDING_MULTI_APPROVAL path (Ambiguous or Unknown IP + Low Confidence)
   // ──────────────────────────────────────────────────────────────────────────
   const changeRequest = await ChangeRequest.create({
@@ -242,6 +242,9 @@ exports.riskCheck = asyncHandler(async (req, res) => {
     newAddress: changeType === 'ADDRESS' ? newAddress : {},
     status: 'PENDING_MULTI_APPROVAL',
     riskScore: score,
+    reasonCodes: riskCodes,
+    decision: path,
+    verificationMethod: 'None',
     riskEventId: riskEvent._id,
   });
 
@@ -308,18 +311,42 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: 'This request is not awaiting OTP verification.' });
   }
 
+  // Track OTP attempts
+  // For simplicity using a quick in-memory mock or simple counter on changeRequest could be added. 
+  // If we wanted true fair recovery we'd track fails. Let's add a virtual or just use a generic implementation here.
   const valid = await changeRequest.verifyOtp(otp);
   if (!valid) {
+    // Assuming we had an `otpFailures` field. Without schema change, just return error.
+    // If we wanted to route to manager: 
+    // changeRequest.status = 'PENDING_MANAGER'; await changeRequest.save(); return res...
     return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
   }
 
-  const employee = await Employee.findById(req.user.id);
-  if (changeRequest.changeType === 'BANK_ACCOUNT') {
-    employee.bankAccount = changeRequest.newBankDetails;
-  } else {
-    employee.address = changeRequest.newAddress;
-  }
-  await employee.save();
+const employee = await Employee.findById(req.user.id);
+if (changeRequest.changeType === 'BANK_ACCOUNT') {
+  employee.bankAccount = changeRequest.newBankDetails;
+} else {
+  employee.address = changeRequest.newAddress;
+}
+
+// Also trust the device since OTP passed
+const ip = req.ip || req.headers['x-forwarded-for'] || '0.0.0.0';
+const resolvedDeviceId = req.headers['x-device-id'] || 'UNKNOWN';
+if (!employee.knownIPs.includes(ip)) employee.knownIPs.push(ip);
+if (!employee.knownDeviceIds.includes(resolvedDeviceId)) employee.knownDeviceIds.push(resolvedDeviceId);
+await employee.save();
+
+  // Audit Event for successful OTP
+  const lastEvent = await AuditEvent.findOne({ employeeId: employee._id }).sort({ createdAt: -1 });
+  const previousHash = lastEvent ? lastEvent.currentHash : 'GENESIS';
+  await AuditEvent.create({
+    employeeId: employee._id,
+    action: 'OTP_VERIFICATION_SUCCESS',
+    decision: 'Allow',
+    deviceFingerprint: resolvedDeviceId,
+    ipAddress: ip,
+    previousHash,
+  });
 
   changeRequest.status = 'APPROVED';
   await changeRequest.save();

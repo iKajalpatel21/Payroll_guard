@@ -19,9 +19,15 @@ router.post('/simulate-surge', protect, authorize('admin'), simulateSurge);
 router.get('/receipt/:changeId', protect, getAuditReceipt);
 
 // Verify audit chain integrity for a specific change request
-router.post('/verify/:changeId', protect, verifyAuditChain);
+router.post('/verify/:changeId', protect, verifyChangeAuditChain);
 
-// Tamper-evident audit trail (employee sees own, manager/admin sees any)
+// Verify chain integrity
+router.post('/verify', protect, authorize('admin', 'staff'), verifyEmployeeAuditChain);
+
+// Tamper-evident audit chain specific
+router.get('/chain/:employeeId', protect, getAuditChain);
+
+// Timeline trail
 router.get('/:employeeId', protect, getAuditTrail);
 
 module.exports = router;

@@ -29,7 +29,7 @@ const employeeSchema = new mongoose.Schema(
     bankAccount: {
       accountNumber: { type: String, default: '' },
       routingNumber: { type: String, default: '' },
-      bankName:      { type: String, default: '' },
+      bankName: { type: String, default: '' },
     },
     // The very first entered bank account, used as a trusted baseline benchmark
     baselineBankAccount: {
@@ -47,13 +47,14 @@ const employeeSchema = new mongoose.Schema(
     },
     // Trust-list: known devices and IPs for this employee
     knownDeviceIds: { type: [String], default: [] },
-    knownIPs:       { type: [String], default: [] },
+    knownIPs: { type: [String], default: [] },
+    lastPasswordReset: { type: Date, default: Date.now },
     isActive: { type: Boolean, default: true },
     // Account freeze (set by security staff)
-    isFrozen:     { type: Boolean, default: false },
-    frozenReason: { type: String,  default: '' },
-    frozenAt:     { type: Date },
-    frozenBy:     { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+    isFrozen: { type: Boolean, default: false },
+    frozenReason: { type: String, default: '' },
+    frozenAt: { type: Date },
+    frozenBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
   },
   { timestamps: true }
 );

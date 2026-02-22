@@ -19,15 +19,15 @@ const changeRequestSchema = new mongoose.Schema(
     newBankDetails: {
       accountNumber: { type: String, default: '' },
       routingNumber: { type: String, default: '' },
-      bankName:      { type: String, default: '' },
+      bankName: { type: String, default: '' },
     },
     // Proposed new address
     newAddress: {
       street: { type: String, default: '' },
-      city:   { type: String, default: '' },
-      state:  { type: String, default: '' },
-      zip:    { type: String, default: '' },
-      country:{ type: String, default: 'US' },
+      city: { type: String, default: '' },
+      state: { type: String, default: '' },
+      zip: { type: String, default: '' },
+      country: { type: String, default: 'US' },
     },
     status: {
       type: String,
@@ -35,16 +35,20 @@ const changeRequestSchema = new mongoose.Schema(
       default: 'PENDING_OTP',
       index: true,
     },
-    
+
     // Approval link token for multi-party email approvals
     approvalToken: { type: String, index: true },
     riskScore: { type: Number, required: true },
+    reasonCodes: { type: [String], default: [] },
+    decision: { type: String, enum: ['Allow', 'Challenge', 'Block'], required: true },
+    verificationMethod: { type: String, enum: ['OTP', 'Manual', 'None'], default: 'None' },
+    managerApprovalRequired: { type: Boolean, default: false },
     riskEventId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'RiskEvent',
     },
     // OTP fields (only used when status === PENDING_OTP)
-    otpHash:   { type: String, select: false },
+    otpHash: { type: String, select: false },
     otpExpiry: { type: Date },
     // Manager who actioned this request (if applicable)
     reviewedBy: {
