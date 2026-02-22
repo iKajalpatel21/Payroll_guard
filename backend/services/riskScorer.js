@@ -17,14 +17,14 @@ const calculateRiskScore = async (employee, ip, deviceId) => {
   // --- Factor 1: Unknown IP ---
   const knownIP = employee.knownIPs.includes(ip);
   if (!knownIP) {
-    riskCodes.push('UNKNOWN_IP');
+    riskCodes.push('ERR_LOC_NEW');
     score += 30;
   }
 
   // --- Factor 2: Unknown Device ---
   const knownDevice = employee.knownDeviceIds.includes(deviceId);
   if (!knownDevice) {
-    riskCodes.push('UNKNOWN_DEVICE');
+    riskCodes.push('ERR_DEV_NOVEL');
     score += 30;
   }
 
@@ -37,11 +37,20 @@ const calculateRiskScore = async (employee, ip, deviceId) => {
     createdAt: { $gte: tenMinutesAgo },
   });
   if (recentBurst >= 5) {
-    riskCodes.push('BURST_ACTIVITY');
+    riskCodes.push('ERR_VELOCITY_HIGH');
     score += 40;
   } else if (recentBurst >= 3) {
-    riskCodes.push('ELEVATED_FREQUENCY');
+    riskCodes.push('ERR_VELOCITY_MED');
     score += 15;
+  }
+
+  // --- Factor 4: Recent Password Reset ---
+  if (employee.lastPasswordReset) {
+    const hoursSinceReset = (Date.now() - new Date(employee.lastPasswordReset).getTime()) / (1000 * 60 * 60);
+    if (hoursSinceReset < 24) {
+      riskCodes.push('ERR_PW_RESET_RECENT');
+      score += 40;
+    }
   }
 
   // --- Factor 4: Aggregation Pipeline – Risk Timeline ---
@@ -65,7 +74,7 @@ const calculateRiskScore = async (employee, ip, deviceId) => {
   ]);
 
   if (timeline.length > 0 && timeline[0].avgScore > 60) {
-    riskCodes.push('HIGH_HISTORICAL_RISK');
+    riskCodes.push('ERR_HIST_RISK');
     score += 10;
   }
 
@@ -76,13 +85,13 @@ const calculateRiskScore = async (employee, ip, deviceId) => {
 };
 
 /**
- * Determines the verification path based on score.
- * Returns: 'AUTO_APPROVE' | 'OTP_REQUIRED' | 'MANAGER_REQUIRED'
+ * Determines the decision based on score.
+ * Returns: 'Allow' | 'Challenge' | 'Block'
  */
 const getVerificationPath = (score) => {
-  if (score < 30)  return 'AUTO_APPROVE';
-  if (score <= 70) return 'OTP_REQUIRED';
-  return 'MANAGER_REQUIRED';
+  if (score < 30) return 'Allow';
+  if (score <= 70) return 'Challenge';
+  return 'Block';
 };
 
 module.exports = { calculateRiskScore, getVerificationPath };

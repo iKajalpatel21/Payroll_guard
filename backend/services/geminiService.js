@@ -30,11 +30,12 @@ A technical risk analysis produced the following results:
 - Risk Codes: ${riskCodes.join(', ')}
 
 Risk code meanings:
-- UNKNOWN_IP: The request came from an IP address not previously used by this employee.
-- UNKNOWN_DEVICE: The request came from an unrecognized device.
-- BURST_ACTIVITY: Multiple change attempts were made in a very short time (possible credential stuffing or account takeover).
-- ELEVATED_FREQUENCY: More change attempts than usual in the last 10 minutes.
-- HIGH_HISTORICAL_RISK: This account has a history of high-risk activity.
+- ERR_LOC_NEW: The request came from an IP address not previously used by this employee.
+- ERR_DEV_NOVEL: The request came from an unrecognized device.
+- ERR_VELOCITY_HIGH: Multiple change attempts were made in a very short time (possible credential stuffing).
+- ERR_VELOCITY_MED: Elevated change attempts in the last 10 minutes.
+- ERR_HIST_RISK: This account has a history of high-risk activity.
+- ERR_PW_RESET_RECENT: Direct deposit change requested shortly after a password reset.
 
 Write a clear, friendly, non-technical 1-2 sentence explanation that:
 1. Informs the employee what triggered the security check (translate the codes to plain English)

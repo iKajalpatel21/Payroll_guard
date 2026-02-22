@@ -1,5 +1,6 @@
 const RiskEvent = require('../models/RiskEvent');
 const ChangeRequest = require('../models/ChangeRequest');
+const AuditEvent = require('../models/AuditEvent');
 
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -29,6 +30,70 @@ exports.getAuditTrail = asyncHandler(async (req, res) => {
   ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
   res.json({ success: true, employeeId, count: timeline.length, timeline });
+});
+
+// ─── GET /api/audit/chain/:employeeId ─────────────────────────────────────────
+// Returns strictly the tamper-evident AuditEvent chain
+exports.getAuditChain = asyncHandler(async (req, res) => {
+  const { employeeId } = req.params;
+
+  if (req.user.role === 'employee' && req.user.id !== employeeId) {
+    return res.status(403).json({ success: false, message: 'Access denied.' });
+  }
+
+  const events = await AuditEvent.find({ employeeId })
+    .sort({ createdAt: 1 })
+    .lean();
+
+  res.json({ success: true, events });
+});
+
+// ─── POST /api/audit/verify ───────────────────────────────────────────────────
+// Admin endpoint to verify chain integrity
+exports.verifyAuditChain = asyncHandler(async (req, res) => {
+  const { employeeId } = req.body;
+  if (!employeeId) {
+    return res.status(400).json({ success: false, message: 'Employee ID required' });
+  }
+
+  const events = await AuditEvent.find({ employeeId }).sort({ createdAt: 1 });
+  if (events.length === 0) {
+    return res.json({ success: true, isIntact: true, message: 'No events found.' });
+  }
+
+  const crypto = require('crypto');
+  let expectedPreviousHash = 'GENESIS';
+
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+
+    // Check link to previous event
+    if (event.previousHash !== expectedPreviousHash) {
+      return res.json({
+        success: true,
+        isIntact: false,
+        message: `Chain broken at event index ${i}. Previous hash mismatch.`,
+        brokenEvent: event
+      });
+    }
+
+    // Check internal integrity
+    const dataString = `${event.employeeId}-${event.action}-${event.decision}-${event.reasonCodes.join(',')}-${event.deviceFingerprint}-${event.ipAddress}-${event.previousHash}-${event.createdAt}`;
+    const computedHash = crypto.createHash('sha256').update(dataString).digest('hex');
+
+    if (computedHash !== event.currentHash) {
+      return res.json({
+        success: true,
+        isIntact: false,
+        message: `Data tampered at event index ${i}. Computed hash mismatch.`,
+        brokenEvent: event
+      });
+    }
+
+    expectedPreviousHash = event.currentHash;
+  }
+
+  res.json({ success: true, isIntact: true, message: 'Audit chain is perfectly intact.' });
 });
 
 // ─── GET /api/audit/stats (admin) ─────────────────────────────────────────────

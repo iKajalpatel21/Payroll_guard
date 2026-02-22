@@ -13,7 +13,7 @@ const changeRequestSchema = new mongoose.Schema(
     newBankDetails: {
       accountNumber: { type: String, required: true },
       routingNumber: { type: String, required: true },
-      bankName:      { type: String, default: '' },
+      bankName: { type: String, default: '' },
     },
     status: {
       type: String,
@@ -22,12 +22,16 @@ const changeRequestSchema = new mongoose.Schema(
       index: true,
     },
     riskScore: { type: Number, required: true },
+    reasonCodes: { type: [String], default: [] },
+    decision: { type: String, enum: ['Allow', 'Challenge', 'Block'], required: true },
+    verificationMethod: { type: String, enum: ['OTP', 'Manual', 'None'], default: 'None' },
+    managerApprovalRequired: { type: Boolean, default: false },
     riskEventId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'RiskEvent',
     },
     // OTP fields (only used when status === PENDING_OTP)
-    otpHash:   { type: String, select: false },
+    otpHash: { type: String, select: false },
     otpExpiry: { type: Date },
     // Manager who actioned this request (if applicable)
     reviewedBy: {
