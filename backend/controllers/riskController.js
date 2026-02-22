@@ -59,8 +59,11 @@ exports.riskCheck = asyncHandler(async (req, res) => {
     return res.status(403).json({ success: false, message: `Your account is frozen. Reason: ${employee.frozenReason || 'Contact security staff.'}` });
   }
 
-  // ── 1. Score risk (Base + Extra Context) ────────────────────────────────────
-  const extraContext = { newRoutingNumber: newBankDetails?.routingNumber, geo, newAddress };
+  // ── 1. Geolocate the request IP (unless client already sent geo) ─────────────
+  const resolvedGeo = geo || await geolocateIP(ip);
+
+  // ── 2. Score risk (Base + Extra Context) ────────────────────────────────────
+  const extraContext = { newRoutingNumber: newBankDetails?.routingNumber, geo: resolvedGeo, newAddress };
   const { score: baseScore, riskCodes: baseCodes } = await calculateRiskScore(employee, ip, resolvedDeviceId, extraContext);
 
   // ── 2. Behavior payload signals ─────────────────────────────────────────────
@@ -87,7 +90,7 @@ exports.riskCheck = asyncHandler(async (req, res) => {
   // ── 4. Full AI pattern analysis ─────────────────────────────────────────────
   const aiResult = await analyzeChangePattern(
     employee,
-    { riskScore: score, riskCodes, ip, geo, deviceId: resolvedDeviceId, changeType, newAddress },
+    { riskScore: score, riskCodes, ip, geo: resolvedGeo, deviceId: resolvedDeviceId, changeType, newAddress },
     recentHistory
   );
 
@@ -95,7 +98,7 @@ exports.riskCheck = asyncHandler(async (req, res) => {
   const riskEvent = await RiskEvent.create({
     employeeId: employee._id,
     ip,
-    geo,
+    geo: resolvedGeo,
     deviceId: resolvedDeviceId,
     action: `${changeType}_CHANGE_ATTEMPT`,
     riskScore: score,
@@ -154,7 +157,7 @@ exports.riskCheck = asyncHandler(async (req, res) => {
     });
 
     return res.status(403).json({
-      success: false, blocked: true, riskScore: score, verdict: aiResult.verdict, confidence: aiResult.confidence,
+      success: false, blocked: true, riskScore: score, riskCodes, verdict: aiResult.verdict, confidence: aiResult.confidence,
       aiMessage: aiResult.employeeMessage,
       message: 'This request has been automatically blocked due to suspicious activity patterns. A fraud case has been opened and the security team has been alerted.',
     });
@@ -178,8 +181,8 @@ exports.riskCheck = asyncHandler(async (req, res) => {
     });
 
     return res.json({
-      success: true, path, riskScore: score, verdict: aiResult.verdict, confidence: aiResult.confidence,
-      aiMessage: aiResult.employeeMessage,
+      success: true, path, riskScore: score, riskCodes, verdict: aiResult.verdict, confidence: aiResult.confidence,
+      aiExplanation: aiResult.employeeMessage, aiMessage: aiResult.employeeMessage,
       message: 'Your details have been updated successfully.',
     });
   }
@@ -204,8 +207,9 @@ exports.riskCheck = asyncHandler(async (req, res) => {
     });
 
     return res.status(202).json({
-      success: true, path, riskScore: score, verdict: aiResult.verdict, confidence: aiResult.confidence,
-      aiMessage: aiResult.employeeMessage, changeRequestId: changeRequest._id,
+      success: true, path, riskScore: score, riskCodes, verdict: aiResult.verdict, confidence: aiResult.confidence,
+      aiExplanation: aiResult.employeeMessage, aiMessage: aiResult.employeeMessage,
+      changeRequestId: changeRequest._id,
       message: 'A verification code has been sent to your registered email.',
     });
   }
@@ -233,7 +237,7 @@ exports.riskCheck = asyncHandler(async (req, res) => {
   await notifyEmployee({ name: 'Manager Team', email: 'managers@payrollguard.local' }, 'APPROVAL_NEEDED', {
     employeeName: employee.name,
     changeType,
-    geoInfo: `${geo.city}, ${geo.region}, ${geo.countryCode} (${geo.isp})`,
+    geoInfo: resolvedGeo ? `${resolvedGeo.city}, ${resolvedGeo.region}, ${resolvedGeo.countryCode} (${resolvedGeo.isp})` : 'Unknown location',
     riskScore: score,
   });
 
@@ -241,8 +245,10 @@ exports.riskCheck = asyncHandler(async (req, res) => {
     success: true,
     path: 'PENDING_MULTI_APPROVAL',
     riskScore: score,
+    riskCodes,
     verdict: aiResult.verdict,
     confidence: aiResult.confidence,
+    aiExplanation: aiResult.employeeMessage,
     aiMessage: aiResult.employeeMessage,
     changeRequestId: changeRequest._id,
     message: 'Your request originates from an unrecognized location and requires manual review. It has been locked pending manager approval.',

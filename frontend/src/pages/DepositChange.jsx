@@ -70,6 +70,7 @@ export default function DepositChange() {
     try {
       const { data } = await api.post('/risk-check', {
         deviceId,
+        changeType: 'BANK_ACCOUNT',
         newBankDetails: {
           accountNumber: form.accountNumber,
           routingNumber:  form.routingNumber,
@@ -92,10 +93,29 @@ export default function DepositChange() {
         maskedAccount: mask(form.accountNumber),
       });
 
-      if (data.path === 'AUTO_APPROVE')      navigate('/deposit/confirmed');
-      else if (data.path === 'OTP_REQUIRED') navigate('/deposit/challenge');
-      else                                   navigate('/deposit/blocked');
+      if (data.path === 'AUTO_APPROVE')           navigate('/deposit/confirmed');
+      else if (data.path === 'OTP_REQUIRED')      navigate('/deposit/challenge');
+      else                                        navigate('/deposit/blocked');
     } catch (err) {
+      // BLOCK path returns 403 with blocked:true
+      if (err?.response?.status === 403 && err?.response?.data?.blocked) {
+        const d = err.response.data;
+        setResult({
+          path:            'BLOCK',
+          riskScore:       d.riskScore,
+          riskCodes:       d.riskCodes || [],
+          aiExplanation:   d.aiExplanation,
+          changeRequestId: d.changeRequestId,
+          newBankDetails: {
+            accountNumber: form.accountNumber,
+            routingNumber:  form.routingNumber,
+            bankName:       form.bankName || routingInfo?.bankName,
+          },
+          maskedAccount: mask(form.accountNumber),
+        });
+        navigate('/deposit/blocked');
+        return;
+      }
       setError(err?.response?.data?.message || 'Submission failed. Please try again.');
     } finally {
       setLoading(false);

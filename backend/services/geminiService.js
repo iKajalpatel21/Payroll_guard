@@ -21,7 +21,7 @@ const analyzeChangePattern = async (employee, event, recentHistory = []) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
 
     const historyText = recentHistory.slice(0, 15).map(e =>
       `  • ${new Date(e.createdAt).toISOString()} | Score:${e.riskScore} | Codes:[${(e.riskCodes||[]).join(',')}] | IP:${e.ip}`
