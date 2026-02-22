@@ -23,7 +23,7 @@ const Onboarding = () => {
         const emp = data.employee;
         if (emp.bankAccount?.accountNumber) {
           // They already have a baseline, redirect to dashboard
-          navigate(emp.role === 'MANAGER' ? '/manager' : emp.role === 'SECURITY_STAFF' ? '/staff' : '/dashboard');
+          navigate(emp.role === 'admin' ? '/admin' : emp.role === 'manager' ? '/manager' : emp.role === 'staff' ? '/staff' : '/dashboard');
         } else {
           setLoading(false);
         }
@@ -55,7 +55,7 @@ const Onboarding = () => {
         deviceId
       });
       // Redirect to correct dashboard based on role
-      navigate(user?.role === 'MANAGER' ? '/manager' : user?.role === 'SECURITY_STAFF' ? '/staff' : '/dashboard');
+      navigate(user?.role === 'admin' ? '/admin' : user?.role === 'manager' ? '/manager' : user?.role === 'staff' ? '/staff' : '/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save details. Please try again.');
       setSubmitting(false);

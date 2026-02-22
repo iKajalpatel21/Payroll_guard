@@ -5,7 +5,7 @@ const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, ne
 
 // POST /api/auth/register
 exports.register = asyncHandler(async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
   }
@@ -13,7 +13,7 @@ exports.register = asyncHandler(async (req, res) => {
   const exists = await Employee.findOne({ email });
   if (exists) return res.status(409).json({ success: false, message: 'Email already registered.' });
 
-  const employee = await Employee.create({ name, email, passwordHash: password, role: role || 'employee' });
+  const employee = await Employee.create({ name, email, passwordHash: password, role: 'employee' });
   sendTokenResponse(employee, 201, res);
 });
 
@@ -65,7 +65,7 @@ exports.getMe = asyncHandler(async (req, res) => {
     name: employee.name,
     email: employee.email,
     role: employee.role,
-    needsOnboarding: !(employee.bankAccount && employee.bankAccount.accountNumber)
+    needsOnboarding: employee.role === 'employee' && !(employee.bankAccount && employee.bankAccount.accountNumber)
   } });
 });
 
@@ -94,7 +94,7 @@ const sendTokenResponse = (employee, statusCode, res) => {
         name:  employee.name,
         email: employee.email,
         role:  employee.role,
-        needsOnboarding: !(employee.bankAccount && employee.bankAccount.accountNumber)
+        needsOnboarding: employee.role === 'employee' && !(employee.bankAccount && employee.bankAccount.accountNumber)
       },
     });
 };

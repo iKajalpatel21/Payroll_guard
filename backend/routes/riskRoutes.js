@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { riskCheck, verifyOtp } = require('../controllers/riskController');
+const { riskCheck, verifyOtp, validateRouting } = require('../controllers/riskController');
 const { protect, authorize } = require('../middleware/authMiddleware');
+
+// Routing number validation
+router.get('/validate-routing', protect, validateRouting);
 
 // Only authenticated employees can submit a deposit change
 router.post('/', protect, authorize('employee', 'manager', 'admin'), riskCheck);
