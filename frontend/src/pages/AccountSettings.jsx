@@ -141,7 +141,7 @@ const AccountSettings = () => {
             {profile?.bankAccount?.accountNumber && bankStep === 'form' && (
               <div className="card info-bar">
                 <span>Current bank on file:</span>
-                <code>****{profile.bankAccount.accountNumber.slice(-4)}</code>
+                <code>xxxxxx{profile.bankAccount.accountNumber.slice(-3)}</code>
                 <span className="info-bank-name">{profile.bankAccount.bankName || ''}</span>
               </div>
             )}

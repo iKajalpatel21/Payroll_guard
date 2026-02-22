@@ -88,7 +88,7 @@ const calculateRiskScore = async (employee, ip, deviceId, extraContext = {}) => 
   // ── Signal 9: IP Geo-Correlation ──────────────────────────────────────────
   if (extraContext.geo) {
     const { geo, newBankDetails, newAddress } = extraContext;
-    
+
     // VPN / Proxy / Datacenter detection
     if (geo.proxy || geo.hosting) {
       score += 35;
@@ -97,7 +97,7 @@ const calculateRiskScore = async (employee, ip, deviceId, extraContext = {}) => 
 
     // Checking against Address (either the new address being updated, or current saved address)
     const targetAddress = newAddress || employee.address;
-    
+
     // Only check if we have both sides
     if (geo.countryCode && targetAddress && targetAddress.country) {
       if (geo.countryCode.toLowerCase() !== targetAddress.country.toLowerCase() && targetAddress.country !== '') {
@@ -152,7 +152,7 @@ const calculateRiskScore = async (employee, ip, deviceId, extraContext = {}) => 
  */
 const getVerificationPath = (score, geminiRecommendation = null) => {
   if (geminiRecommendation === 'BLOCK') return 'BLOCK';
-  if (score < 30)  return 'AUTO_APPROVE';
+  if (score < 30) return 'AUTO_APPROVE';
   if (score <= 70) return 'OTP_REQUIRED';
   return 'MANAGER_REQUIRED';
 };

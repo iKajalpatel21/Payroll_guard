@@ -1,5 +1,6 @@
 const ChangeRequest = require('../models/ChangeRequest');
 const Employee = require('../models/Employee');
+const AuditEvent = require('../models/AuditEvent');
 
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -33,6 +34,19 @@ exports.approveRequest = asyncHandler(async (req, res) => {
   changeRequest.reviewedAt = new Date();
   await changeRequest.save();
 
+  // Audit Event for Manager Approval
+  const lastEvent = await AuditEvent.findOne({ employeeId: changeRequest.employeeId }).sort({ createdAt: -1 });
+  const previousHash = lastEvent ? lastEvent.currentHash : 'GENESIS';
+  const ip = req.ip || req.headers['x-forwarded-for'] || '0.0.0.0';
+  await AuditEvent.create({
+    employeeId: changeRequest.employeeId,
+    action: 'MANAGER_APPROVED_DEPOSIT_CHANGE',
+    decision: 'Allow',
+    deviceFingerprint: req.headers['x-device-id'] || 'MANAGER_DEVICE',
+    ipAddress: ip,
+    previousHash,
+  });
+
   res.json({ success: true, message: 'Request approved. Employee bank details updated.' });
 });
 
@@ -49,6 +63,19 @@ exports.denyRequest = asyncHandler(async (req, res) => {
   changeRequest.reviewNote = req.body.note || '';
   changeRequest.reviewedAt = new Date();
   await changeRequest.save();
+
+  // Audit Event for Manager Denial
+  const lastEvent = await AuditEvent.findOne({ employeeId: changeRequest.employeeId }).sort({ createdAt: -1 });
+  const previousHash = lastEvent ? lastEvent.currentHash : 'GENESIS';
+  const ip = req.ip || req.headers['x-forwarded-for'] || '0.0.0.0';
+  await AuditEvent.create({
+    employeeId: changeRequest.employeeId,
+    action: 'MANAGER_DENIED_DEPOSIT_CHANGE',
+    decision: 'Block',
+    deviceFingerprint: req.headers['x-device-id'] || 'MANAGER_DEVICE',
+    ipAddress: ip,
+    previousHash,
+  });
 
   res.json({ success: true, message: 'Request denied.' });
 });

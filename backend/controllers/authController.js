@@ -65,6 +65,7 @@ exports.getMe = asyncHandler(async (req, res) => {
     name: employee.name,
     email: employee.email,
     role: employee.role,
+    bankAccount: employee.bankAccount,
     needsOnboarding: employee.role === 'employee' && !(employee.bankAccount && employee.bankAccount.accountNumber)
   } });
 });
@@ -94,6 +95,7 @@ const sendTokenResponse = (employee, statusCode, res) => {
         name:  employee.name,
         email: employee.email,
         role:  employee.role,
+        bankAccount: employee.bankAccount,
         needsOnboarding: employee.role === 'employee' && !(employee.bankAccount && employee.bankAccount.accountNumber)
       },
     });

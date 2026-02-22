@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
 function mask(num) {
-  if (!num) return '****';
+  if (!num) return 'xxxxxx';
   const s = String(num);
-  return '****' + s.slice(-4);
+  return 'xxxxxx' + s.slice(-3);
 }
 
 export default function EmployeeDashboard() {
@@ -41,7 +41,7 @@ export default function EmployeeDashboard() {
                     </div>
                   </div>
                   <div style={{ color:'var(--muted)', fontSize:13 }}>
-                    Routing: ****{String(bank.routingNumber || '').slice(-4)}
+                    Routing: xxxxxx{String(bank.routingNumber || '').slice(-4)}
                   </div>
                 </>
               ) : (

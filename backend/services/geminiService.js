@@ -24,7 +24,7 @@ const analyzeChangePattern = async (employee, event, recentHistory = []) => {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const historyText = recentHistory.slice(0, 15).map(e =>
-      `  • ${new Date(e.createdAt).toISOString()} | Score:${e.riskScore} | Codes:[${(e.riskCodes||[]).join(',')}] | IP:${e.ip}`
+      `  • ${new Date(e.createdAt).toISOString()} | Score:${e.riskScore} | Codes:[${(e.riskCodes || []).join(',')}] | IP:${e.ip}`
     ).join('\n') || '  No history.';
 
     const prompt = `
@@ -69,11 +69,11 @@ Return ONLY this JSON (no markdown, no explanation):
 
     // Validate fields
     return {
-      verdict:            ['LIKELY_FRAUD', 'LIKELY_GENUINE', 'UNCERTAIN'].includes(parsed.verdict) ? parsed.verdict : 'UNCERTAIN',
-      confidence:         typeof parsed.confidence === 'number' ? Math.min(100, Math.max(0, parsed.confidence)) : 50,
-      patternSummary:     parsed.patternSummary  || fallback.patternSummary,
-      employeeMessage:    parsed.employeeMessage || fallback.employeeMessage,
-      recommendedAction:  ['AUTO_APPROVE', 'OTP', 'MANAGER', 'BLOCK'].includes(parsed.recommendedAction) ? parsed.recommendedAction : fallback.recommendedAction,
+      verdict: ['LIKELY_FRAUD', 'LIKELY_GENUINE', 'UNCERTAIN'].includes(parsed.verdict) ? parsed.verdict : 'UNCERTAIN',
+      confidence: typeof parsed.confidence === 'number' ? Math.min(100, Math.max(0, parsed.confidence)) : 50,
+      patternSummary: parsed.patternSummary || fallback.patternSummary,
+      employeeMessage: parsed.employeeMessage || fallback.employeeMessage,
+      recommendedAction: ['AUTO_APPROVE', 'OTP', 'MANAGER', 'BLOCK'].includes(parsed.recommendedAction) ? parsed.recommendedAction : fallback.recommendedAction,
     };
   } catch (err) {
     console.error('Gemini pattern analysis error:', err.message);
@@ -88,16 +88,16 @@ const explainRisk = async (riskCodes, score) => {
   if (!riskCodes?.length) return 'This transaction appears low-risk.';
 
   const descriptions = {
-    UNKNOWN_IP:              'request from an unrecognized IP address',
-    UNKNOWN_DEVICE:          'request from an unrecognized device',
-    BURST_ACTIVITY:          'multiple rapid change attempts detected',
-    ELEVATED_FREQUENCY:      'higher than normal activity frequency',
-    UNUSUAL_HOUR:            'request made during unusual hours',
-    ACCOUNT_TOO_NEW:         'account was recently created',
-    POST_LOGIN_RUSH:         'change attempted very soon after logging in',
+    UNKNOWN_IP: 'request from an unrecognized IP address',
+    UNKNOWN_DEVICE: 'request from an unrecognized device',
+    BURST_ACTIVITY: 'multiple rapid change attempts detected',
+    ELEVATED_FREQUENCY: 'higher than normal activity frequency',
+    UNUSUAL_HOUR: 'request made during unusual hours',
+    ACCOUNT_TOO_NEW: 'account was recently created',
+    POST_LOGIN_RUSH: 'change attempted very soon after logging in',
     MULTI_FAIL_THEN_SUCCESS: 'multiple failed attempts before this request',
-    NEW_ACCOUNT_SAME_ROUTING:'bank routing number shared with other accounts',
-    HIGH_HISTORICAL_RISK:    'history of elevated risk activity',
+    NEW_ACCOUNT_SAME_ROUTING: 'bank routing number shared with other accounts',
+    HIGH_HISTORICAL_RISK: 'history of elevated risk activity',
   };
 
   const parts = riskCodes.map(c => descriptions[c] || c).join('; ');
