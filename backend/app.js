@@ -15,6 +15,8 @@ const payrollRoutes    = require('./routes/payrollRoutes');
 const fraudCaseRoutes  = require('./routes/fraudCaseRoutes');
 const alertRoutes      = require('./routes/alertRoutes');
 const recoveryRoutes   = require('./routes/recoveryRoutes');
+const accountRoutes    = require('./routes/accountRoutes');
+const approvalRoutes   = require('./routes/approvalRoutes');
 
 const app = express();
 
@@ -63,6 +65,8 @@ app.use('/api/payroll',    payrollRoutes);
 app.use('/api/cases',      fraudCaseRoutes);
 app.use('/api/alerts',     alertRoutes);
 app.use('/api/recovery',   recoveryRoutes);
+app.use('/api/me',         accountRoutes);
+app.use('/api/approvals',  approvalRoutes);
 
 // ── 404 ───────────────────────────────────────────────────────────────────────
 app.use((req, res) => {

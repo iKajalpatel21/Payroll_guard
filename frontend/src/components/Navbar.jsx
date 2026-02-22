@@ -24,6 +24,8 @@ const Navbar = () => {
           {user.role === 'admin' && <Link to="/admin">Admin Dashboard</Link>}
           {(user.role === 'staff' || user.role === 'admin') && <Link to="/staff" style={{ color: '#f87171' }}>🚨 Staff Center</Link>}
           <Link to="/payroll" style={{ color: '#a78bfa' }}>💰 Payroll</Link>
+          <Link to="/simulate" style={{ color: '#fb923c' }}>🎬 Simulate</Link>
+          <Link to="/settings" style={{ color: '#34d399' }}>⚙️ Settings</Link>
           <span className="nav-user">{user.name} · <em>{user.role}</em></span>
           <button className="btn-logout" onClick={handleLogout}>Logout</button>
         </div>
