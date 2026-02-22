@@ -103,8 +103,15 @@ export default function Login() {
             )}
 
             <button className="pg-btn pg-btn-primary pg-btn-full" type="submit" disabled={loading}
-              style={{ marginTop:4, padding:'13px 22px', fontSize:15 }}>
-              {loading ? <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}><div style={{transform: 'scale(0.35)', margin: '-20px'}}><ShieldLoader /></div> Authenticating…</div> : tab === 'signin' ? 'Sign In Securely' : 'Create Account'}
+              style={{ marginTop:4, padding:'0 22px', fontSize:15, height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {loading ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ transform: 'scale(0.35)', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ShieldLoader />
+                  </div>
+                  Authenticating…
+                </div>
+              ) : tab === 'signin' ? 'Sign In Securely' : 'Create Account'}
             </button>
           </form>
         </div>

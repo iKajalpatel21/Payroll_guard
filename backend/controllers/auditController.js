@@ -1,11 +1,8 @@
 const crypto = require('crypto');
 const RiskEvent = require('../models/RiskEvent');
 const ChangeRequest = require('../models/ChangeRequest');
-<<<<<<< HEAD
 const AuditEvent = require('../models/AuditEvent');
-=======
 const Employee = require('../models/Employee');
->>>>>>> 2bc2f5fbc593d563232d80fc9990a96e9a0697bb
 
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -45,7 +42,6 @@ exports.getAuditTrail = asyncHandler(async (req, res) => {
   res.json({ success: true, employeeId, count: timeline.length, timeline });
 });
 
-<<<<<<< HEAD
 // ─── GET /api/audit/chain/:employeeId ─────────────────────────────────────────
 // Returns strictly the tamper-evident AuditEvent chain
 exports.getAuditChain = asyncHandler(async (req, res) => {
@@ -64,7 +60,7 @@ exports.getAuditChain = asyncHandler(async (req, res) => {
 
 // ─── POST /api/audit/verify ───────────────────────────────────────────────────
 // Admin endpoint to verify chain integrity
-exports.verifyAuditChain = asyncHandler(async (req, res) => {
+exports.verifyEmployeeAuditChain = asyncHandler(async (req, res) => {
   const { employeeId } = req.body;
   if (!employeeId) {
     return res.status(400).json({ success: false, message: 'Employee ID required' });
@@ -108,7 +104,8 @@ exports.verifyAuditChain = asyncHandler(async (req, res) => {
   }
 
   res.json({ success: true, isIntact: true, message: 'Audit chain is perfectly intact.' });
-=======
+});
+
 // ─── GET /api/audit/receipt/:changeId ─────────────────────────────────────────
 exports.getAuditReceipt = asyncHandler(async (req, res) => {
   const { changeId } = req.params;
@@ -157,7 +154,7 @@ exports.getAuditReceipt = asyncHandler(async (req, res) => {
 });
 
 // ─── POST /api/audit/verify/:changeId ─────────────────────────────────────────
-exports.verifyAuditChain = asyncHandler(async (req, res) => {
+exports.verifyChangeAuditChain = asyncHandler(async (req, res) => {
   const { changeId } = req.params;
   const changeRequest = await ChangeRequest.findById(changeId).lean();
   if (!changeRequest) return res.status(404).json({ success: false, message: 'Not found.' });
@@ -225,7 +222,6 @@ exports.simulateSurge = asyncHandler(async (req, res) => {
     allowed: 0,
     message: `Surge simulation complete: ${blocked} blocked, ${challenged} challenged.`,
   });
->>>>>>> 2bc2f5fbc593d563232d80fc9990a96e9a0697bb
 });
 
 // ─── GET /api/audit/stats (admin) ─────────────────────────────────────────────

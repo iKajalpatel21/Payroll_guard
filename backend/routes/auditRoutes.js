@@ -2,9 +2,11 @@ const express = require('express');
 const router = express.Router();
 const {
   getAuditTrail,
+  getAuditChain,
   getAdminStats,
   getAuditReceipt,
-  verifyAuditChain,
+  verifyEmployeeAuditChain,
+  verifyChangeAuditChain,
   simulateSurge,
 } = require('../controllers/auditController');
 const { protect, authorize } = require('../middleware/authMiddleware');
