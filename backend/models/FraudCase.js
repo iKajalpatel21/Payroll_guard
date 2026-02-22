@@ -33,6 +33,7 @@ const fraudCaseSchema = new mongoose.Schema(
     // Linked evidence
     linkedRiskEventIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'RiskEvent' }],
     linkedPayrollIds:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'Payroll' }],
+    linkedChangeRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'ChangeRequest' }],
     // AI-generated scam analysis from Gemini
     aiSummary: { type: String, default: '' },
     aiRecommendations: { type: String, default: '' },

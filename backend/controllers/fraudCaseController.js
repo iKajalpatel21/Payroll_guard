@@ -144,3 +144,59 @@ exports.getCaseStats = asyncHandler(async (req, res) => {
   ]);
   res.json({ success: true, stats: { open, investigating, resolved, critical } });
 });
+
+// ─── POST /api/cases/:id/freeze ──────────────────────────────────────────────
+exports.freezeAccount = asyncHandler(async (req, res) => {
+  const fraudCase = await FraudCase.findById(req.params.id).populate('employeeId');
+  if (!fraudCase) return res.status(404).json({ success: false, message: 'Case not found.' });
+
+  const employee = fraudCase.employeeId;
+  employee.isFrozen = true;
+  employee.frozenReason = `Frozen by ${req.user.role} during investigation of case ${fraudCase._id}`;
+  employee.frozenAt = new Date();
+  employee.frozenBy = req.user.id;
+  await employee.save();
+
+  fraudCase.timeline.push({
+    action: 'ACCOUNT_FROZEN',
+    note: `Account frozen by ${req.user.role}.`,
+    performedBy: req.user.id,
+  });
+  await fraudCase.save();
+
+  res.json({ success: true, message: 'Account has been frozen.' });
+});
+
+// ─── POST /api/cases/:id/hold ────────────────────────────────────────────────
+exports.holdTransaction = asyncHandler(async (req, res) => {
+  const fraudCase = await FraudCase.findById(req.params.id);
+  if (!fraudCase) return res.status(404).json({ success: false, message: 'Case not found.' });
+
+  if (!fraudCase.linkedChangeRequests || fraudCase.linkedChangeRequests.length === 0) {
+    return res.status(400).json({ success: false, message: 'No pending transactions linked to this case.' });
+  }
+
+  const ChangeRequest = require('../models/ChangeRequest');
+  let holdCount = 0;
+
+  for (const requestId of fraudCase.linkedChangeRequests) {
+    const cr = await ChangeRequest.findById(requestId);
+    if (cr && !['APPROVED', 'DENIED', 'EXPIRED'].includes(cr.status)) {
+      cr.status = 'DENIED'; // Deny the pending change
+      cr.reviewNote = `Transaction held/denied during investigation of case ${fraudCase._id}`;
+      cr.reviewedBy = req.user.id;
+      cr.reviewedAt = new Date();
+      await cr.save();
+      holdCount++;
+    }
+  }
+
+  fraudCase.timeline.push({
+    action: 'TRANSACTION_HELD',
+    note: `${holdCount} pending transaction(s) were held/denied.`,
+    performedBy: req.user.id,
+  });
+  await fraudCase.save();
+
+  res.json({ success: true, message: `${holdCount} transaction(s) have been held.` });
+});

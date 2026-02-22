@@ -12,6 +12,7 @@ const ROLE_LINKS = {
     { to: '/manager', label: 'Dashboard' },
     { to: '/dashboard', label: 'My Portal' },
     { to: '/payroll', label: 'Payroll' },
+    { to: '/staff', label: 'Tickets' },
   ],
   admin: [
     { to: '/admin', label: 'Dashboard' },

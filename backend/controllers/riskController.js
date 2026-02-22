@@ -195,6 +195,28 @@ exports.riskCheck = asyncHandler(async (req, res) => {
       status: 'PENDING_OTP', riskScore: score, riskEventId: riskEvent._id,
     });
 
+    // ── Ticket System for High Risk Events (>= 70) ─────────────────────────
+    if (score >= 70) {
+      await FraudCase.create({
+        employeeId: employee._id,
+        type: 'ACCOUNT_TAKEOVER',
+        severity: 'HIGH',
+        title: `High Risk Event: ${changeType} change for ${employee.name}`,
+        description: `Risk score was ${score}. AI analysis: ${aiResult.patternSummary}`,
+        linkedRiskEventIds: [riskEvent._id],
+        linkedChangeRequests: [changeRequest._id],
+        aiSummary: aiResult.patternSummary,
+        timeline: [{ action: 'TICKET_CREATED', note: `Automatically opened due to risk score ${score}.` }],
+      });
+
+      await createAlert({
+        type: 'HIGH_RISK_TICKET',
+        severity: 'WARNING',
+        employeeId: employee._id,
+        message: `High risk activity detected. A ticket has been automatically opened for ${employee.name}.`,
+      });
+    }
+
     const plainOtp = await sendOtp(employee.email, employee.name);
     await changeRequest.setOtp(plainOtp);
     await changeRequest.save();
@@ -210,7 +232,7 @@ exports.riskCheck = asyncHandler(async (req, res) => {
     });
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────────────────
   // PENDING_MULTI_APPROVAL path (Ambiguous or Unknown IP + Low Confidence)
   // ──────────────────────────────────────────────────────────────────────────
   const changeRequest = await ChangeRequest.create({
@@ -222,6 +244,28 @@ exports.riskCheck = asyncHandler(async (req, res) => {
     riskScore: score,
     riskEventId: riskEvent._id,
   });
+
+  // ── 8. Ticket System for High Risk Events (>= 70) ─────────────────────────
+  if (score >= 70) {
+    await FraudCase.create({
+      employeeId: employee._id,
+      type: 'ACCOUNT_TAKEOVER',
+      severity: 'HIGH',
+      title: `High Risk Event: ${changeType} change for ${employee.name}`,
+      description: `Risk score was ${score}. AI analysis: ${aiResult.patternSummary}`,
+      linkedRiskEventIds: [riskEvent._id],
+      linkedChangeRequests: [changeRequest._id],
+      aiSummary: aiResult.patternSummary,
+      timeline: [{ action: 'TICKET_CREATED', note: `Automatically opened due to risk score ${score}.` }],
+    });
+
+    await createAlert({
+      type: 'HIGH_RISK_TICKET',
+      severity: 'WARNING',
+      employeeId: employee._id,
+      message: `High risk activity detected. A ticket has been automatically opened for ${employee.name}.`,
+    });
+  }
 
   // Notify Employee
   await notifyEmployee(employee, 'MULTI_APPROVAL_REQUESTED', {

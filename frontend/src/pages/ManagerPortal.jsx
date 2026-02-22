@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import SignalBadge from '../components/SignalBadge';
+import ShieldLoader from '../components/ShieldLoader';
 import api from '../api/axios';
 
 function ScoreBadge({ score }) {
@@ -57,7 +58,7 @@ export default function ManagerPortal() {
           </div>
 
           {loading ? (
-            <div style={{ textAlign:'center', padding:60 }}><span className="pg-spinner" style={{ width:32, height:32, borderWidth:3 }} /></div>
+            <ShieldLoader />
           ) : requests.length === 0 ? (
             <div className="pg-card" style={{ textAlign:'center', padding:60, color:'var(--muted)' }}>
               ✅ No pending reviews — all caught up!

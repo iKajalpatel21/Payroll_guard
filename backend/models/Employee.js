@@ -31,6 +31,12 @@ const employeeSchema = new mongoose.Schema(
       routingNumber: { type: String, default: '' },
       bankName:      { type: String, default: '' },
     },
+    // The very first entered bank account, used as a trusted baseline benchmark
+    baselineBankAccount: {
+      accountNumber: { type: String, default: '' },
+      routingNumber: { type: String, default: '' },
+      bankName:      { type: String, default: '' },
+    },
     // Home / mailing address (changes are risk-scored like bank changes)
     address: {
       street:  { type: String, default: '' },

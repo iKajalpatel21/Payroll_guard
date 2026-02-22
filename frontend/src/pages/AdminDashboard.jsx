@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Navbar from '../components/Navbar';
 import SurgeSimulator from '../components/SurgeSimulator';
+import ShieldLoader from '../components/ShieldLoader';
 import api from '../api/axios';
 
 const DECISION_COLOR = { ALLOW:'var(--safe)', CHALLENGE:'var(--caution)', BLOCK:'var(--danger)', SIMULATED_ATTACK:'var(--danger)' };
@@ -78,7 +79,7 @@ export default function AdminDashboard() {
             <div className="pg-card">
               <div className="pg-card-title">Top Risk Employees</div>
               {loading ? (
-                <div style={{ textAlign:'center', padding:24 }}><span className="pg-spinner" /></div>
+                <ShieldLoader />
               ) : topRisk.length === 0 ? (
                 <div style={{ color:'var(--muted)', fontSize:14 }}>No data yet</div>
               ) : (
@@ -104,7 +105,7 @@ export default function AdminDashboard() {
             <div className="pg-card">
               <div className="pg-card-title">Risk Distribution</div>
               {loading ? (
-                <div style={{ textAlign:'center', padding:24 }}><span className="pg-spinner" /></div>
+                <ShieldLoader />
               ) : (
                 <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
                   {[

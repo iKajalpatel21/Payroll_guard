@@ -1,0 +1,76 @@
+.shield-loader-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+}
+
+.shield-loader {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.shield-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: var(--brand);
+    border-right-color: var(--brand-dark);
+    border-bottom-color: var(--safe);
+    animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+}
+
+.shield-icon {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    color: var(--brand);
+    animation: pulse-shield 2s ease-in-out infinite;
+    z-index: 2;
+    filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.6));
+}
+
+.shield-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg) scale(0.9);
+    }
+
+    50% {
+        transform: rotate(180deg) scale(1.1);
+    }
+
+    100% {
+        transform: rotate(360deg) scale(0.9);
+    }
+}
+
+@keyframes pulse-shield {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+}

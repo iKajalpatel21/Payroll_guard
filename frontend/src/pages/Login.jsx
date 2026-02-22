@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ShieldLoader from '../components/ShieldLoader';
 
 export default function Login() {
   const { login, register } = useAuth();
@@ -47,20 +48,33 @@ export default function Login() {
         {/* Card */}
         <div className="pg-card">
           {/* Tabs */}
-          <div style={{ display:'flex', gap:4, marginBottom:24, background:'var(--surface2)', borderRadius:8, padding:4 }}>
-            {['signin','register'].map(t => (
-              <button key={t}
-                onClick={() => { setTab(t); setError(''); }}
-                style={{
-                  flex:1, padding:'8px 12px', borderRadius:6, border:'none', cursor:'pointer',
-                  background: tab === t ? 'var(--surface)' : 'transparent',
-                  color: tab === t ? 'var(--text)' : 'var(--muted)',
-                  fontWeight: tab === t ? 600 : 400, fontSize:13, transition:'all 0.15s',
-                  fontFamily:'inherit',
-                }}>
-                {t === 'signin' ? 'Sign In' : 'Register'}
-              </button>
-            ))}
+          <div style={{
+            display: 'flex', gap: 6, marginBottom: 28,
+            background: 'rgba(9, 9, 11, 0.6)', backdropFilter: 'blur(8px)',
+            borderRadius: 12, padding: 6, border: '1px solid rgba(255, 255, 255, 0.05)',
+            boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.2)'
+          }}>
+            {['signin', 'register'].map(t => {
+              const isActive = tab === t;
+              return (
+                <button key={t}
+                  onClick={() => { setTab(t); setError(''); }}
+                  style={{
+                    flex: 1, padding: '12px', border: isActive ? '1px solid rgba(56, 189, 248, 0.15)' : '1px solid transparent',
+                    background: isActive ? 'linear-gradient(180deg, rgba(39, 39, 42, 0.8), rgba(24, 24, 27, 0.8))' : 'transparent',
+                    color: isActive ? '#38bdf8' : '#64748b',
+                    borderRadius: 8, cursor: 'pointer',
+                    fontWeight: isActive ? 600 : 500, fontSize: 13,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isActive ? '0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)' : 'none',
+                    textShadow: isActive ? '0 0 10px rgba(56, 189, 248, 0.3)' : 'none',
+                    transform: isActive ? 'scale(1.01)' : 'none',
+                    fontFamily: 'inherit', position: 'relative', overflow: 'hidden'
+                  }}>
+                  {t === 'signin' ? 'Sign In Securely' : 'Create Account'}
+                </button>
+              );
+            })}
           </div>
 
           <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:16 }}>
@@ -90,7 +104,7 @@ export default function Login() {
 
             <button className="pg-btn pg-btn-primary pg-btn-full" type="submit" disabled={loading}
               style={{ marginTop:4, padding:'13px 22px', fontSize:15 }}>
-              {loading ? <><span className="pg-spinner" /> Authenticating…</> : tab === 'signin' ? 'Sign In Securely' : 'Create Account'}
+              {loading ? <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}><div style={{transform: 'scale(0.35)', margin: '-20px'}}><ShieldLoader /></div> Authenticating…</div> : tab === 'signin' ? 'Sign In Securely' : 'Create Account'}
             </button>
           </form>
         </div>

@@ -104,6 +104,24 @@ const StaffDashboard = () => {
     } catch { setAiAnalysis('Analysis failed. Check your Gemini API key.'); }
     finally { setAnalyzing(false); }
   };
+  const freezeFromCase = async (id) => {
+    try {
+      await api.post(`/cases/${id}/freeze`);
+      flash('❄️ Account frozen successfully.');
+      fetchCases();
+    } catch (err) {
+      flash(err.response?.data?.message || 'Failed to freeze account.', true);
+    }
+  };
+  const holdTransaction = async (id) => {
+    try {
+      const { data } = await api.post(`/cases/${id}/hold`);
+      flash(`✋ ${data.message}`);
+      fetchCases();
+    } catch (err) {
+      flash(err.response?.data?.message || 'Failed to hold transaction.', true);
+    }
+  };
 
   // ── Recovery actions ──────────────────────────────────────────────────────────
   const searchEmployees = async () => {
@@ -284,6 +302,14 @@ const StaffDashboard = () => {
                           </select>
                           <button className="btn-ai-analyze" onClick={() => runAnalysis(c._id)} disabled={analyzing}>
                             {analyzing ? '⏳ Analyzing…' : '🤖 AI Analyze'}
+                          </button>
+                        </div>
+                        <div className="case-actions-row" style={{ marginTop: 8 }}>
+                          <button className="btn-deny" style={{ flex: 1 }} onClick={() => freezeFromCase(c._id)}>
+                            ❄️ Freeze Account
+                          </button>
+                          <button className="btn-caution" style={{ flex: 1, background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 4, fontWeight: 600, cursor: 'pointer' }} onClick={() => holdTransaction(c._id)}>
+                            ✋ Hold Transaction
                           </button>
                         </div>
 

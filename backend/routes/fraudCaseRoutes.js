@@ -1,14 +1,17 @@
 const express = require('express');
 const router  = express.Router();
-const { getAllCases, createCase, updateCase, analyzeCase, getCaseStats } = require('../controllers/fraudCaseController');
+const { getAllCases, createCase, updateCase, analyzeCase, getCaseStats, freezeAccount, holdTransaction } = require('../controllers/fraudCaseController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-const staffOrAdmin = authorize('staff', 'admin');
+const adminManagerStaff = authorize('admin', 'manager', 'staff');
+const staffOrAdmin = authorize('admin', 'staff', 'manager');
 
 router.get('/stats',         protect, staffOrAdmin, getCaseStats);
-router.get('/',              protect, staffOrAdmin, getAllCases);
+router.get('/',              protect, adminManagerStaff, getAllCases);
 router.post('/',             protect, staffOrAdmin, createCase);
-router.put('/:id',           protect, staffOrAdmin, updateCase);
-router.get('/:id/analyze',   protect, staffOrAdmin, analyzeCase);
+router.put('/:id',           protect, adminManagerStaff, updateCase);
+router.get('/:id/analyze',   protect, adminManagerStaff, analyzeCase);
+router.post('/:id/freeze',   protect, adminManagerStaff, freezeAccount);
+router.post('/:id/hold',     protect, adminManagerStaff, holdTransaction);
 
 module.exports = router;

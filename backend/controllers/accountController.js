@@ -53,6 +53,7 @@ exports.setBaseline = asyncHandler(async (req, res) => {
   }
 
   employee.bankAccount = newBankDetails;
+  employee.baselineBankAccount = newBankDetails;
   employee.address = newAddress;
 
   // Save the IP and Device ID as known baseline

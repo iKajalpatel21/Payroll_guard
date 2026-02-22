@@ -114,7 +114,25 @@ const calculateRiskScore = async (employee, ip, deviceId, extraContext = {}) => 
     }
   }
 
-  // ── Signal 10: High Historical Risk ───────────────────────────────────────
+  // ── Signal 10: Baseline Bank Deviation ────────────────────────────────────
+  // Compare against the very first trusted benchmark account entered at onboarding
+  if (extraContext.newBankDetails && employee.baselineBankAccount && employee.baselineBankAccount.accountNumber) {
+    const baseline = employee.baselineBankAccount;
+    const incoming = extraContext.newBankDetails;
+
+    // Highest Risk: Changing routing numbers entirely indicates a move to a new financial institution
+    if (incoming.routingNumber !== baseline.routingNumber) {
+      score += 40;
+      riskCodes.push('BASELINE_DEVIATION_ROUTING');
+    } 
+    // Moderate Risk: Changing account numbers within the same institution
+    else if (incoming.accountNumber !== baseline.accountNumber) {
+      score += 20;
+      riskCodes.push('BASELINE_DEVIATION_ACCOUNT');
+    }
+  }
+
+  // ── Signal 11: High Historical Risk ───────────────────────────────────────
   const histPipeline = [
     { $match: { employeeId: employee._id, createdAt: { $gte: new Date(now - 30 * 24 * 60 * 60 * 1000) } } },
     { $group: { _id: null, avgScore: { $avg: '$riskScore' } } },

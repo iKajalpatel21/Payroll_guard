@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import ShieldLoader from './ShieldLoader';
 import api from '../api/axios';
 
 export default function SurgeSimulator({ onSurgeComplete }) {
@@ -62,7 +63,7 @@ export default function SurgeSimulator({ onSurgeComplete }) {
         onClick={runSurge} disabled={state === 'running'}
         style={{ fontSize:15, padding:'14px 22px' }}>
         {state === 'running'
-          ? <><span className="pg-spinner" /> Running… {counter} / {intensity} attempts</>
+          ? <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}><div style={{transform: 'scale(0.35)', margin: '-20px'}}><ShieldLoader /></div> Running… {counter} / {intensity} attempts</div>
           : '⚡ Run Attack Simulation'}
       </button>
 
