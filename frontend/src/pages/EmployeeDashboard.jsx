@@ -1,174 +1,91 @@
-import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../api/axios';
+import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import './Dashboard.css';
 
-const RISK_COLOR = (score) => {
-  if (score < 30) return '#22c55e';
-  if (score <= 70) return '#f59e0b';
-  return '#ef4444';
-};
+function mask(num) {
+  if (!num) return '****';
+  const s = String(num);
+  return '****' + s.slice(-4);
+}
 
-const RISK_LABEL = (score) => {
-  if (score < 30) return 'LOW';
-  if (score <= 70) return 'MEDIUM';
-  return 'HIGH';
-};
-
-const EmployeeDashboard = () => {
+export default function EmployeeDashboard() {
   const { user } = useAuth();
-  const [form, setForm] = useState({ accountNumber: '', routingNumber: '', bankName: '' });
-  const [deviceId] = useState(() => `device-${Math.random().toString(36).substring(2, 10)}`);
-  const [step, setStep] = useState('form'); // form | otp | result
-  const [result, setResult] = useState(null);
-  const [otp, setOtp] = useState('');
-  const [changeRequestId, setChangeRequestId] = useState('');
-  const [msg, setMsg] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const { data } = await api.post('/risk-check', {
-        deviceId,
-        newBankDetails: form,
-      }, { headers: { 'x-device-id': deviceId } });
-      setResult(data);
-      if (data.path === 'OTP_REQUIRED') {
-        setChangeRequestId(data.changeRequestId);
-        setStep('otp');
-      } else {
-        setStep('result');
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Request failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpVerify = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const { data } = await api.post('/risk-check/verify-otp', { changeRequestId, otp });
-      setMsg(data.message);
-      setStep('result');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Invalid OTP.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const reset = () => {
-    setStep('form');
-    setResult(null);
-    setOtp('');
-    setMsg('');
-    setError('');
-    setForm({ accountNumber: '', routingNumber: '', bankName: '' });
-  };
+  const bank = user?.bankAccount;
 
   return (
-    <>
+    <div className="pg-page">
       <Navbar />
-      <div className="dashboard-container">
-        <div className="dashboard-header">
-          <h2>👋 Welcome, {user?.name}</h2>
-          <p>Change your payroll direct deposit details below. We'll verify your identity for security.</p>
+      <div className="pg-container" style={{ paddingTop:40, paddingBottom:40 }}>
+        <div className="pg-fade-in">
+          {/* Welcome */}
+          <div style={{ marginBottom:32 }}>
+            <h1 style={{ fontSize:26, fontWeight:800, marginBottom:4 }}>
+              👋 Welcome back, {user?.name}
+            </h1>
+            <p style={{ color:'var(--muted)', fontSize:14 }}>
+              Last login: Today · 🛡️ Session monitored
+            </p>
+          </div>
+
+          {/* Cards row */}
+          <div className="pg-grid-2" style={{ marginBottom:24 }}>
+            {/* Direct deposit card */}
+            <div className="pg-card" style={{ display:'flex', flexDirection:'column', gap:16 }}>
+              <div className="pg-card-title">💰 Direct Deposit</div>
+              {bank?.accountNumber ? (
+                <>
+                  <div>
+                    <div style={{ fontSize:16, fontWeight:700 }}>{bank.bankName || 'Bank'}</div>
+                    <div style={{ color:'var(--muted)', fontSize:14, marginTop:2 }}>
+                      Account {mask(bank.accountNumber)}
+                    </div>
+                  </div>
+                  <div style={{ color:'var(--muted)', fontSize:13 }}>
+                    Routing: ****{String(bank.routingNumber || '').slice(-4)}
+                  </div>
+                </>
+              ) : (
+                <div style={{ color:'var(--muted)', fontSize:14 }}>No bank account on file</div>
+              )}
+              <Link to="/deposit/change" className="pg-btn pg-btn-primary pg-btn-sm" style={{ alignSelf:'flex-start' }}>
+                Update
+              </Link>
+            </div>
+
+            {/* Security status */}
+            <div className="pg-card" style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <div className="pg-card-title">🛡️ Security Status</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:14 }}>
+                  <span style={{ color:'var(--muted)' }}>Session</span>
+                  <span className="pg-badge badge-safe">Active</span>
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:14 }}>
+                  <span style={{ color:'var(--muted)' }}>Device Trust</span>
+                  <span className="pg-badge badge-info">Monitored</span>
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:14 }}>
+                  <span style={{ color:'var(--muted)' }}>Risk Level</span>
+                  <span className="pg-badge badge-safe">Low</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick actions */}
+          <div className="pg-card">
+            <div className="pg-card-title">Quick Actions</div>
+            <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+              <Link to="/deposit/change" className="pg-btn pg-btn-primary">
+                Update Direct Deposit
+              </Link>
+              <Link to="/payroll" className="pg-btn pg-btn-ghost">
+                View Payslips
+              </Link>
+            </div>
+          </div>
         </div>
-
-        {/* ── Form Step ── */}
-        {step === 'form' && (
-          <div className="card">
-            <h3>Update Direct Deposit</h3>
-            <form onSubmit={handleSubmit} className="dash-form">
-              <div className="form-group">
-                <label>Account Number</label>
-                <input name="accountNumber" value={form.accountNumber} onChange={handleChange} placeholder="123456789" required />
-              </div>
-              <div className="form-group">
-                <label>Routing Number</label>
-                <input name="routingNumber" value={form.routingNumber} onChange={handleChange} placeholder="021000021" required />
-              </div>
-              <div className="form-group">
-                <label>Bank Name (optional)</label>
-                <input name="bankName" value={form.bankName} onChange={handleChange} placeholder="Chase, Wells Fargo…" />
-              </div>
-              {error && <div className="alert-error">⚠️ {error}</div>}
-              <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? 'Analyzing…' : 'Submit Change Request'}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* ── OTP Step ── */}
-        {step === 'otp' && result && (
-          <div className="card">
-            <div className="risk-badge" style={{ '--risk-color': RISK_COLOR(result.riskScore) }}>
-              <span className="badge-label">Risk Score</span>
-              <span className="badge-score">{result.riskScore}</span>
-              <span className="badge-level">{RISK_LABEL(result.riskScore)} RISK</span>
-            </div>
-            <div className="ai-explanation">
-              <span className="ai-icon">🤖 AI Security Notice</span>
-              <p>{result.aiExplanation}</p>
-            </div>
-            <h3>Enter Verification Code</h3>
-            <p className="otp-hint">We've sent a 6-digit code to your email. Please enter it below.</p>
-            <form onSubmit={handleOtpVerify} className="dash-form">
-              <div className="form-group">
-                <label>One-Time Password</label>
-                <input value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="_ _ _ _ _ _" maxLength={6} required className="otp-input" />
-              </div>
-              {error && <div className="alert-error">⚠️ {error}</div>}
-              <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? 'Verifying…' : 'Verify & Confirm'}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* ── Result Step ── */}
-        {step === 'result' && (
-          <div className="card result-card">
-            {result?.path === 'MANAGER_REQUIRED' ? (
-              <div className="result-pending">
-                <div className="result-icon">⏳</div>
-                <h3>Pending Manager Review</h3>
-                <div className="ai-explanation">
-                  <span className="ai-icon">🤖 AI Security Notice</span>
-                  <p>{result.aiExplanation}</p>
-                </div>
-                <div className="risk-badge" style={{ '--risk-color': RISK_COLOR(result.riskScore) }}>
-                  <span className="badge-label">Risk Score</span>
-                  <span className="badge-score">{result.riskScore}</span>
-                  <span className="badge-level">HIGH RISK</span>
-                </div>
-                <p>Your manager has been notified. You'll receive a decision soon.</p>
-              </div>
-            ) : (
-              <div className="result-success">
-                <div className="result-icon">✅</div>
-                <h3>Details Updated Successfully</h3>
-                <p>{msg || result?.message}</p>
-              </div>
-            )}
-            <button className="btn-secondary" onClick={reset}>← Back</button>
-          </div>
-        )}
       </div>
-    </>
+    </div>
   );
-};
-
-export default EmployeeDashboard;
+}

@@ -1,116 +1,139 @@
 import { useState, useEffect } from 'react';
-import api from '../api/axios';
 import Navbar from '../components/Navbar';
-import './Dashboard.css';
+import SignalBadge from '../components/SignalBadge';
+import api from '../api/axios';
 
-const ManagerPortal = () => {
+function ScoreBadge({ score }) {
+  const color = score < 30 ? 'var(--safe)' : score < 70 ? 'var(--caution)' : 'var(--danger)';
+  const bg    = score < 30 ? 'rgba(16,185,129,0.12)' : score < 70 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)';
+  return (
+    <span style={{ background:bg, color, border:`1px solid ${color}33`, borderRadius:6, padding:'3px 10px', fontSize:13, fontWeight:700 }}>
+      {score}
+    </span>
+  );
+}
+
+export default function ManagerPortal() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionMsg, setActionMsg] = useState('');
+  const [actionLoading, setActionLoading] = useState({});
+  const [feedback, setFeedback] = useState({});
 
-  const fetchRequests = async () => {
+  async function fetchRequests() {
     setLoading(true);
     try {
       const { data } = await api.get('/manager/requests');
-      setRequests(data.requests);
-    } catch {
-      setRequests([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setRequests(data.requests || data.data || []);
+    } catch { setRequests([]); }
+    setLoading(false);
+  }
 
   useEffect(() => { fetchRequests(); }, []);
 
-  const action = async (id, type, note) => {
-    const endpoint = `/manager/requests/${id}/${type}`;
-    await api.put(endpoint, { note });
-    setActionMsg(`Request ${type}d successfully.`);
-    fetchRequests();
-    setTimeout(() => setActionMsg(''), 3000);
-  };
-
-  const RISK_LABEL = (score) => {
-    if (score < 30) return { label: 'LOW', color: '#22c55e' };
-    if (score <= 70) return { label: 'MEDIUM', color: '#f59e0b' };
-    return { label: 'HIGH', color: '#ef4444' };
-  };
+  async function act(id, action) {
+    setActionLoading(p => ({ ...p, [id]: action }));
+    try {
+      await api.put(`/manager/requests/${id}/${action}`);
+      setFeedback(p => ({ ...p, [id]: action }));
+      setTimeout(() => fetchRequests(), 1000);
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Action failed.');
+    }
+    setActionLoading(p => ({ ...p, [id]: null }));
+  }
 
   return (
-    <>
+    <div className="pg-page">
       <Navbar />
-      <div className="dashboard-container">
-        <div className="dashboard-header">
-          <h2>🏛️ Manager Review Portal</h2>
-          <p>Review high-risk payroll change requests flagged by the system.</p>
-        </div>
-
-        {actionMsg && <div className="alert-success">✅ {actionMsg}</div>}
-
-        {loading ? (
-          <div className="loading-text">Loading requests…</div>
-        ) : requests.length === 0 ? (
-          <div className="card empty-state">
-            <p>🎉 No pending requests. All clear!</p>
+      <div className="pg-container" style={{ paddingTop:40, paddingBottom:40 }}>
+        <div className="pg-fade-in">
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:28 }}>
+            <div>
+              <h1 style={{ fontSize:22, fontWeight:800, marginBottom:4 }}>Manager Portal</h1>
+              <p style={{ color:'var(--muted)', fontSize:14 }}>Review flagged deposit change requests</p>
+            </div>
+            <span className="pg-badge badge-caution">{requests.length} pending</span>
           </div>
-        ) : (
-          <div className="request-grid">
-            {requests.map((req) => {
-              const risk = RISK_LABEL(req.riskScore);
-              return (
-                <div className="request-card" key={req._id}>
-                  <div className="request-header">
-                    <div>
-                      <strong>{req.employeeId?.name}</strong>
-                      <span className="emp-email">{req.employeeId?.email}</span>
-                    </div>
-                    <span className="risk-chip" style={{ background: `${risk.color}22`, color: risk.color, borderColor: `${risk.color}55` }}>
-                      {risk.label} · {req.riskScore}
-                    </span>
-                  </div>
 
-                  <div className="request-detail">
-                    <div className="detail-row"><span>New Account</span><code>{req.newBankDetails?.accountNumber}</code></div>
-                    <div className="detail-row"><span>Routing</span><code>{req.newBankDetails?.routingNumber}</code></div>
-                    {req.newBankDetails?.bankName && (
-                      <div className="detail-row"><span>Bank</span><span>{req.newBankDetails.bankName}</span></div>
+          {loading ? (
+            <div style={{ textAlign:'center', padding:60 }}><span className="pg-spinner" style={{ width:32, height:32, borderWidth:3 }} /></div>
+          ) : requests.length === 0 ? (
+            <div className="pg-card" style={{ textAlign:'center', padding:60, color:'var(--muted)' }}>
+              ✅ No pending reviews — all caught up!
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+              {requests.map(r => {
+                const done = feedback[r._id];
+                return (
+                  <div key={r._id} className="pg-card"
+                    style={{ border: `1px solid ${r.riskScore > 70 ? 'rgba(239,68,68,0.4)' : 'rgba(245,158,11,0.4)'}` }}>
+                    {/* Header row */}
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16, flexWrap:'wrap', gap:10 }}>
+                      <div>
+                        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
+                          <span style={{ fontSize:15, fontWeight:700 }}>{r.employee?.name || 'Employee'}</span>
+                          <ScoreBadge score={r.riskScore} />
+                          {r.riskScore > 70 && <span className="pg-badge badge-danger">⚠️ HIGH RISK</span>}
+                        </div>
+                        <div style={{ fontSize:12, color:'var(--muted)' }}>
+                          {r.employee?.email} · {new Date(r.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bank change */}
+                    <div style={{ fontSize:13, color:'var(--muted)', marginBottom:14 }}>
+                      Changing to:{' '}
+                      <strong style={{ color:'var(--text)' }}>
+                        {r.newBankDetails?.bankName || 'Bank'} ****{String(r.newBankDetails?.accountNumber||'').slice(-4)}
+                      </strong>
+                    </div>
+
+                    {/* Risk codes */}
+                    {r.riskEvent?.riskCodes?.length > 0 && (
+                      <div style={{ marginBottom:14 }}>
+                        {r.riskEvent.riskCodes.map(c => <SignalBadge key={c} code={c} />)}
+                      </div>
+                    )}
+
+                    {/* AI explanation */}
+                    {r.riskEvent?.aiExplanation && (
+                      <div style={{ fontSize:13, color:'var(--muted)', lineHeight:1.6, borderTop:'1px solid var(--border)', paddingTop:12, marginBottom:14 }}>
+                        {r.riskEvent.aiExplanation}
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    {done ? (
+                      <div style={{ padding:'10px 14px', borderRadius:8, fontSize:14, fontWeight:600,
+                        background: done === 'approve' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                        color: done === 'approve' ? 'var(--safe)' : 'var(--danger)',
+                        border: `1px solid ${done === 'approve' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                      }}>
+                        {done === 'approve' ? '✅ Approved' : '🚩 Denied'} — refreshing…
+                      </div>
+                    ) : (
+                      <div style={{ display:'flex', gap:10 }}>
+                        <button className="pg-btn pg-btn-success" style={{ flex:1 }}
+                          onClick={() => act(r._id, 'approve')}
+                          disabled={!!actionLoading[r._id]}>
+                          {actionLoading[r._id] === 'approve' ? <><span className="pg-spinner" /> Approving…</> : '✅ Looks Fine — Approve'}
+                        </button>
+                        <button className="pg-btn pg-btn-danger" style={{ flex:1 }}
+                          onClick={() => act(r._id, 'deny')}
+                          disabled={!!actionLoading[r._id]}>
+                          {actionLoading[r._id] === 'deny' ? <><span className="pg-spinner" /> Denying…</> : '🚩 Something\'s Off — Deny'}
+                        </button>
+                      </div>
                     )}
                   </div>
-
-                  {req.riskEventId?.aiExplanation && (
-                    <div className="ai-explanation sm">
-                      <span className="ai-icon">🤖</span>
-                      <p>{req.riskEventId.aiExplanation}</p>
-                    </div>
-                  )}
-
-                  <div className="risk-codes">
-                    {req.riskEventId?.riskCodes?.map((code) => (
-                      <span key={code} className="code-chip">{code}</span>
-                    ))}
-                  </div>
-
-                  <div className="request-meta">
-                    <small>IP: {req.riskEventId?.ip} | Device: {req.riskEventId?.deviceId}</small>
-                    <small>{new Date(req.createdAt).toLocaleString()}</small>
-                  </div>
-
-                  <div className="request-actions">
-                    <button className="btn-approve" onClick={() => action(req._id, 'approve', 'Manager approved.')}>
-                      ✓ Approve
-                    </button>
-                    <button className="btn-deny" onClick={() => action(req._id, 'deny', 'Manager denied.')}>
-                      ✗ Deny
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
-    </>
+    </div>
   );
-};
-
-export default ManagerPortal;
+}

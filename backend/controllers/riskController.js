@@ -8,9 +8,40 @@ const { autoAlert } = require('../services/alertService');
 
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
+// Common routing numbers → bank names
+const ROUTING_LOOKUP = {
+  '021000021': 'JPMorgan Chase Bank, N.A.',
+  '021001088': 'JPMorgan Chase Bank, N.A.',
+  '021000089': 'Citibank, N.A.',
+  '021272655': 'TD Bank, N.A.',
+  '031176110': 'TD Bank, N.A.',
+  '021200339': 'Bank of America, N.A.',
+  '026009593': 'Bank of America, N.A.',
+  '121000248': 'Wells Fargo Bank, N.A.',
+  '121042882': 'Wells Fargo Bank, N.A.',
+  '322271627': 'Wells Fargo Bank, N.A.',
+  '256074974': 'Navy Federal Credit Union',
+  '031100157': 'Ally Bank',
+  '124303201': 'Goldman Sachs Bank USA (Marcus)',
+};
+// Routing prefixes associated with prepaid cards
+const PREPAID_PREFIXES = ['073972181', '084003997', '091409107', '021214891', '053200983'];
+
+// ─── GET /api/risk-check/validate-routing ─────────────────────────────────────
+exports.validateRouting = asyncHandler(async (req, res) => {
+  const { number } = req.query;
+  if (!number || !/^\d{9}$/.test(number.trim())) {
+    return res.status(400).json({ success: false, message: 'Provide a valid 9-digit routing number.' });
+  }
+  const n = number.trim();
+  const isPrepaid = PREPAID_PREFIXES.includes(n);
+  const bankName = ROUTING_LOOKUP[n] || null;
+  res.json({ success: true, valid: true, bankName, isPrepaid });
+});
+
 // ─── POST /api/risk-check ─────────────────────────────────────────────────────
 exports.riskCheck = asyncHandler(async (req, res) => {
-  const { deviceId, newBankDetails } = req.body;
+  const { deviceId, newBankDetails, behavior } = req.body;
   const ip = req.ip || req.headers['x-forwarded-for'] || '0.0.0.0';
   const resolvedDeviceId = deviceId || req.headers['x-device-id'] || 'UNKNOWN';
 
@@ -27,7 +58,20 @@ exports.riskCheck = asyncHandler(async (req, res) => {
   }
 
   // ----- Score the risk -----
-  const { score, riskCodes } = await calculateRiskScore(employee, ip, resolvedDeviceId);
+  const { score: baseScore, riskCodes: baseCodes } = await calculateRiskScore(employee, ip, resolvedDeviceId);
+
+  // ----- Behavior payload signals -----
+  let behaviorScore = 0;
+  const behaviorCodes = [];
+  if (behavior) {
+    if (behavior.clipboardPaste) { behaviorCodes.push('CLIPBOARD_PASTE_DETECTED'); behaviorScore += 10; }
+    if (behavior.directNavigation) { behaviorCodes.push('DIRECT_NAVIGATION'); behaviorScore += 10; }
+    if (behavior.sessionDurationSeconds != null && behavior.sessionDurationSeconds < 60) {
+      behaviorCodes.push('SHORT_SESSION'); behaviorScore += 10;
+    }
+  }
+  const score = Math.min(100, baseScore + behaviorScore);
+  const riskCodes = [...baseCodes, ...behaviorCodes];
   const path = getVerificationPath(score);
 
   // ----- Get AI explanation -----
