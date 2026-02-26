@@ -14,7 +14,7 @@ const STATUS_META = {
 
 const PayrollDashboard = () => {
   const { user } = useAuth();
-  const isManager = user?.role === 'manager' || user?.role === 'admin';
+  const isManager = user?.role === 'admin';
 
   const [payrolls, setPayrolls] = useState([]);
   const [stats, setStats]       = useState(null);

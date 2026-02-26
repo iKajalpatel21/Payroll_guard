@@ -12,7 +12,7 @@ const riskEventSchema = new mongoose.Schema(
     deviceId: { type: String, required: true },
     action: {
       type: String,
-      enum: ['LOGIN', 'DEPOSIT_CHANGE_ATTEMPT', 'OTP_VERIFY', 'MANAGER_REVIEW', 'SIMULATED_ATTACK'],
+      enum: ['LOGIN', 'DEPOSIT_CHANGE_ATTEMPT', 'BANK_ACCOUNT_CHANGE_ATTEMPT', 'ADDRESS_CHANGE_ATTEMPT', 'OTP_VERIFY', 'MANAGER_REVIEW', 'SIMULATED_ATTACK'],
       default: 'DEPOSIT_CHANGE_ATTEMPT',
     },
     riskScore: { type: Number, min: 0, max: 100, required: true },

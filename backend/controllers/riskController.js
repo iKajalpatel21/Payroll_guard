@@ -247,7 +247,7 @@ exports.riskCheck = asyncHandler(async (req, res) => {
     status: 'PENDING_MULTI_APPROVAL',
     riskScore: score,
     reasonCodes: riskCodes,
-    decision: path,
+    decision: 'Challenge',
     verificationMethod: 'None',
     riskEventId: riskEvent._id,
   });

@@ -154,7 +154,7 @@ const getVerificationPath = (score, geminiRecommendation = null) => {
   if (geminiRecommendation === 'BLOCK') return 'BLOCK';
   if (score < 30) return 'AUTO_APPROVE';
   if (score <= 70) return 'OTP_REQUIRED';
-  return 'MANAGER_REQUIRED';
+  return 'ADMIN_REVIEW_REQUIRED';
 };
 
 module.exports = { calculateRiskScore, getVerificationPath };

@@ -10,14 +10,14 @@ const {
 } = require('../controllers/payrollController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-const managerOrAdmin = authorize('manager', 'admin');
+const adminOnly = authorize('admin');
 
-// Manual run + stats (admin/manager only)
-router.post('/run',          protect, managerOrAdmin, triggerPayroll);
-router.get('/stats',         protect, managerOrAdmin, getPayrollStats);
-router.get('/cycles',        protect, managerOrAdmin, getCycles);
-router.get('/',              protect, managerOrAdmin, getAllPayrolls);
-router.put('/:id/release',   protect, managerOrAdmin, releasePayroll);
+// Manual run + stats (admin only)
+router.post('/run',          protect, adminOnly, triggerPayroll);
+router.get('/stats',         protect, adminOnly, getPayrollStats);
+router.get('/cycles',        protect, adminOnly, getCycles);
+router.get('/',              protect, adminOnly, getAllPayrolls);
+router.put('/:id/release',   protect, adminOnly, releasePayroll);
 
 // Employee: own payroll history
 router.get('/my', protect, getMyPayrolls);

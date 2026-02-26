@@ -12,7 +12,7 @@ const {
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 // Admin stats dashboard
-router.get('/stats', protect, authorize('admin', 'staff'), getAdminStats);
+router.get('/stats', protect, authorize('admin'), getAdminStats);
 
 // Surge simulator (admin only)
 router.post('/simulate-surge', protect, authorize('admin'), simulateSurge);
@@ -24,7 +24,7 @@ router.get('/receipt/:changeId', protect, getAuditReceipt);
 router.post('/verify/:changeId', protect, verifyChangeAuditChain);
 
 // Verify chain integrity
-router.post('/verify', protect, authorize('admin', 'staff'), verifyEmployeeAuditChain);
+router.post('/verify', protect, authorize('admin'), verifyEmployeeAuditChain);
 
 // Tamper-evident audit chain specific
 router.get('/chain/:employeeId', protect, getAuditChain);

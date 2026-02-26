@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Navbar from '../components/Navbar';
 import SurgeSimulator from '../components/SurgeSimulator';
 import ShieldLoader from '../components/ShieldLoader';
+import SignalBadge from '../components/SignalBadge';
 import api from '../api/axios';
 
 const DECISION_COLOR = { ALLOW: 'var(--safe)', CHALLENGE: 'var(--caution)', BLOCK: 'var(--danger)', SIMULATED_ATTACK: 'var(--danger)' };
@@ -22,6 +23,35 @@ export default function AdminDashboard() {
   
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Pending reviews
+  const [pendingReviews, setPendingReviews] = useState([]);
+  const [reviewLoading, setReviewLoading] = useState(true);
+  const [reviewAction, setReviewAction] = useState({});
+  const [reviewFeedback, setReviewFeedback] = useState({});
+
+  const fetchPendingReviews = useCallback(async () => {
+    setReviewLoading(true);
+    try {
+      const { data } = await api.get('/approvals');
+      setPendingReviews(data.requests || []);
+    } catch { setPendingReviews([]); }
+    setReviewLoading(false);
+  }, []);
+
+  useEffect(() => { fetchPendingReviews(); }, [fetchPendingReviews]);
+
+  async function handleReview(id, action) {
+    setReviewAction(p => ({ ...p, [id]: action }));
+    try {
+      await api.post(`/approvals/${id}/${action}`);
+      setReviewFeedback(p => ({ ...p, [id]: action }));
+      setTimeout(() => { fetchPendingReviews(); fetchStats(); }, 1200);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Action failed.');
+    }
+    setReviewAction(p => ({ ...p, [id]: null }));
+  }
 
   const fetchStats = useCallback(async () => {
     try {
@@ -125,6 +155,82 @@ export default function AdminDashboard() {
 
           {successMsg && <div className="alert-success" style={{marginBottom: 24}}>✅ {successMsg}</div>}
           {error && <div className="alert-error" style={{marginBottom: 24}}>⚠️ {error}</div>}
+
+          {/* Pending Reviews */}
+          <div className="pg-card" style={{ marginBottom: 28, border: pendingReviews.length > 0 ? '1px solid rgba(245,158,11,0.4)' : undefined }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div className="pg-card-title" style={{ margin: 0 }}>🔎 Pending Admin Reviews</div>
+              {pendingReviews.length > 0 && (
+                <span className="pg-badge badge-caution">{pendingReviews.length} pending</span>
+              )}
+            </div>
+            {reviewLoading ? (
+              <div style={{ textAlign: 'center', padding: 20 }}><span className="pg-spinner" /></div>
+            ) : pendingReviews.length === 0 ? (
+              <div style={{ color: 'var(--muted)', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>
+                ✅ No pending reviews — all clear!
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {pendingReviews.map(r => {
+                  const done = reviewFeedback[r._id];
+                  const scoreColor = r.riskScore < 30 ? 'var(--safe)' : r.riskScore < 70 ? 'var(--caution)' : 'var(--danger)';
+                  return (
+                    <div key={r._id} style={{ background: 'var(--surface2)', borderRadius: 10, padding: '14px 16px', border: `1px solid ${r.riskScore > 70 ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                        <div>
+                          <span style={{ fontWeight: 700, fontSize: 14 }}>{r.employeeId?.name || 'Employee'}</span>
+                          <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 8 }}>{r.employeeId?.email}</span>
+                          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                            {new Date(r.createdAt).toLocaleString()} · {r.status}
+                          </div>
+                        </div>
+                        <span style={{ background: `${scoreColor}22`, color: scoreColor, border: `1px solid ${scoreColor}44`, borderRadius: 6, padding: '3px 10px', fontSize: 13, fontWeight: 700 }}>
+                          {r.riskScore}
+                        </span>
+                      </div>
+                      {r.newBankDetails?.accountNumber && (
+                        <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>
+                          Changing to: <strong style={{ color: 'var(--text)' }}>{r.newBankDetails.bankName || 'Bank'} ****{String(r.newBankDetails.accountNumber).slice(-4)}</strong>
+                        </div>
+                      )}
+                      {r.riskEventId?.riskCodes?.length > 0 && (
+                        <div style={{ marginBottom: 10 }}>
+                          {r.riskEventId.riskCodes.map(c => <SignalBadge key={c} code={c} />)}
+                        </div>
+                      )}
+                      {r.riskEventId?.aiExplanation && (
+                        <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5, borderTop: '1px solid var(--border)', paddingTop: 10, marginBottom: 10 }}>
+                          {r.riskEventId.aiExplanation}
+                        </div>
+                      )}
+                      {done ? (
+                        <div style={{ padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                          background: done === 'approve' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+                          color: done === 'approve' ? 'var(--safe)' : 'var(--danger)',
+                        }}>
+                          {done === 'approve' ? '✅ Approved' : '🚩 Denied'} — refreshing…
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <button className="pg-btn pg-btn-success" style={{ flex: 1 }}
+                            onClick={() => handleReview(r._id, 'approve')}
+                            disabled={!!reviewAction[r._id]}>
+                            {reviewAction[r._id] === 'approve' ? <><span className="pg-spinner" /> Approving…</> : '✅ Approve'}
+                          </button>
+                          <button className="pg-btn pg-btn-danger" style={{ flex: 1 }}
+                            onClick={() => handleReview(r._id, 'deny')}
+                            disabled={!!reviewAction[r._id]}>
+                            {reviewAction[r._id] === 'deny' ? <><span className="pg-spinner" /> Denying…</> : '🚩 Deny'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Stat cards */}
           <div className="pg-grid-4" style={{ marginBottom: 28 }}>

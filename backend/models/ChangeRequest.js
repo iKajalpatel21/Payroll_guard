@@ -31,7 +31,7 @@ const changeRequestSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['PENDING_OTP', 'PENDING_MANAGER', 'PENDING_MULTI_APPROVAL', 'APPROVED', 'DENIED', 'EXPIRED'],
+      enum: ['PENDING_OTP', 'PENDING_ADMIN_REVIEW', 'PENDING_MULTI_APPROVAL', 'APPROVED', 'DENIED', 'EXPIRED'],
       default: 'PENDING_OTP',
       index: true,
     },

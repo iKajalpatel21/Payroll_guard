@@ -48,6 +48,19 @@ exports.login = asyncHandler(async (req, res) => {
     notifyEmployee(employee, 'NEW_LOGIN', { ip, device: deviceId }).catch(() => {});
   }
 
+  // Trust this IP and device after successful login so subsequent risk checks
+  // from the same browser don't trigger UNKNOWN_IP / UNKNOWN_DEVICE signals.
+  let needsSave = false;
+  if (ip && !employee.knownIPs.includes(ip)) {
+    employee.knownIPs.push(ip);
+    needsSave = true;
+  }
+  if (deviceId && deviceId !== 'UNKNOWN' && !employee.knownDeviceIds.includes(deviceId)) {
+    employee.knownDeviceIds.push(deviceId);
+    needsSave = true;
+  }
+  if (needsSave) await employee.save();
+
   sendTokenResponse(employee, 200, res);
 });
 

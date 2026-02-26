@@ -19,7 +19,7 @@ function chainHash(prev, evtHash) {
 exports.getAuditTrail = asyncHandler(async (req, res) => {
   const { employeeId } = req.params;
 
-  // Employees can only see their own audit trail; managers/admins can see any
+  // Employees can only see their own audit trail; admins can see any
   if (req.user.role === 'employee' && req.user.id !== employeeId) {
     return res.status(403).json({ success: false, message: 'Access denied.' });
   }
@@ -131,7 +131,7 @@ exports.getAuditReceipt = asyncHandler(async (req, res) => {
   const eventHash = hashEvent(evtPayload);
   const chainH = chainHash('GENESIS', eventHash);
 
-  const receiptId = `PG-${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}-${changeRequest._id.toString().slice(-4).toUpperCase()}`;
+  const receiptId = `PG-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${changeRequest._id.toString().slice(-4).toUpperCase()}`;
 
   res.json({
     success: true,
@@ -186,14 +186,14 @@ exports.simulateSurge = asyncHandler(async (req, res) => {
   const employees = await Employee.find({}, '_id').lean();
   if (!employees.length) return res.status(400).json({ success: false, message: 'No employees found.' });
 
-  const ATTACK_IPS = ['45.33.32.156','104.21.14.1','198.51.100.77','203.0.113.42','192.0.2.100'];
-  const ATTACK_DEVICES = ['BOT_001','BOT_002','BOT_003','SCRAPR_X','PHANTOM_DEV'];
+  const ATTACK_IPS = ['45.33.32.156', '104.21.14.1', '198.51.100.77', '203.0.113.42', '192.0.2.100'];
+  const ATTACK_DEVICES = ['BOT_001', 'BOT_002', 'BOT_003', 'SCRAPR_X', 'PHANTOM_DEV'];
   const CODE_POOLS = [
-    ['UNKNOWN_IP','UNKNOWN_DEVICE','BURST_ACTIVITY'],
-    ['UNKNOWN_IP','BURST_ACTIVITY'],
-    ['UNKNOWN_DEVICE','HIGH_HISTORICAL_RISK'],
-    ['BURST_ACTIVITY','ELEVATED_FREQUENCY'],
-    ['CLIPBOARD_PASTE_DETECTED','DIRECT_NAVIGATION','SHORT_SESSION'],
+    ['UNKNOWN_IP', 'UNKNOWN_DEVICE', 'BURST_ACTIVITY'],
+    ['UNKNOWN_IP', 'BURST_ACTIVITY'],
+    ['UNKNOWN_DEVICE', 'HIGH_HISTORICAL_RISK'],
+    ['BURST_ACTIVITY', 'ELEVATED_FREQUENCY'],
+    ['CLIPBOARD_PASTE_DETECTED', 'DIRECT_NAVIGATION', 'SHORT_SESSION'],
   ];
   const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const randInt = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;

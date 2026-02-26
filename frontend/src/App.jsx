@@ -9,20 +9,17 @@ import ChallengeOTP       from './pages/ChallengeOTP';
 import BlockedScreen      from './pages/BlockedScreen';
 import ConfirmationScreen from './pages/ConfirmationScreen';
 import AuditReceipt       from './pages/AuditReceipt';
-import ManagerPortal      from './pages/ManagerPortal';
 import AdminDashboard     from './pages/AdminDashboard';
 import PayrollDashboard   from './pages/PayrollDashboard';
-import StaffDashboard     from './pages/StaffDashboard';
 import Onboarding         from './pages/Onboarding';
 
-const ALL_ROLES = ['employee','manager','admin','staff'];
+const ALL_ROLES = ['employee', 'admin'];
 
 function HomeRedirect() {
   const { user, loading } = useAuth();
   if (loading) return <div className="loading-screen">Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
-  const role = user.role;
-  return <Navigate to={role === 'admin' ? '/admin' : role === 'manager' ? '/manager' : role === 'staff' ? '/staff' : '/dashboard'} replace />;
+  return <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace />;
 }
 
 function App() {
@@ -33,7 +30,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomeRedirect />} />
             <Route path="/login" element={<Login />} />
-            
+
             <Route path="/onboarding" element={
               <PrivateRoute roles={ALL_ROLES} allowOnboarding={true}>
                 <Onboarding />
@@ -42,29 +39,29 @@ function App() {
 
             {/* Employee dashboard */}
             <Route path="/dashboard" element={
-              <PrivateRoute roles={['employee','manager','admin']}>
+              <PrivateRoute roles={ALL_ROLES}>
                 <EmployeeDashboard />
               </PrivateRoute>
             } />
 
-            {/* Deposit flow — all steps share DepositContext */}
+            {/* Deposit flow */}
             <Route path="/deposit/change" element={
-              <PrivateRoute roles={['employee','manager','admin']}>
+              <PrivateRoute roles={ALL_ROLES}>
                 <DepositChange />
               </PrivateRoute>
             } />
             <Route path="/deposit/challenge" element={
-              <PrivateRoute roles={['employee','manager','admin']}>
+              <PrivateRoute roles={ALL_ROLES}>
                 <ChallengeOTP />
               </PrivateRoute>
             } />
             <Route path="/deposit/blocked" element={
-              <PrivateRoute roles={['employee','manager','admin']}>
+              <PrivateRoute roles={ALL_ROLES}>
                 <BlockedScreen />
               </PrivateRoute>
             } />
             <Route path="/deposit/confirmed" element={
-              <PrivateRoute roles={['employee','manager','admin']}>
+              <PrivateRoute roles={ALL_ROLES}>
                 <ConfirmationScreen />
               </PrivateRoute>
             } />
@@ -76,33 +73,23 @@ function App() {
               </PrivateRoute>
             } />
 
-            {/* Manager */}
-            <Route path="/manager" element={
-              <PrivateRoute roles={['manager','admin']}>
-                <ManagerPortal />
-              </PrivateRoute>
-            } />
-
-            {/* Admin */}
+            {/* Admin — all ops (approvals, risk monitoring, audit, freeze) */}
             <Route path="/admin" element={
               <PrivateRoute roles={['admin']}>
                 <AdminDashboard />
               </PrivateRoute>
             } />
 
-            {/* Payroll (all) */}
+            {/* Payroll */}
             <Route path="/payroll" element={
               <PrivateRoute roles={ALL_ROLES}>
                 <PayrollDashboard />
               </PrivateRoute>
             } />
 
-            {/* Staff security ops */}
-            <Route path="/staff" element={
-              <PrivateRoute roles={['staff','admin','manager']}>
-                <StaffDashboard />
-              </PrivateRoute>
-            } />
+            {/* Legacy redirects — old manager/staff routes → admin */}
+            <Route path="/manager" element={<Navigate to="/admin" replace />} />
+            <Route path="/staff"   element={<Navigate to="/admin" replace />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

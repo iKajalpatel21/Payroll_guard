@@ -5,14 +5,7 @@ import RiskMeter from '../components/RiskMeter';
 import { useDeposit } from '../context/DepositContext';
 import { useAuth } from '../context/AuthContext';
 import { useBehaviorCollector } from '../hooks/useBehaviorCollector';
-import api from '../api/axios';
-
-function generateDeviceId() {
-  const key = 'pg_device_id';
-  let id = localStorage.getItem(key);
-  if (!id) { id = 'DEV_' + Math.random().toString(36).slice(2, 10).toUpperCase(); localStorage.setItem(key, id); }
-  return id;
-}
+import api, { getOrCreateDeviceId } from '../api/axios';
 
 function mask(num) {
   if (!num) return null;
@@ -65,7 +58,7 @@ export default function DepositChange() {
     setError(''); setLoading(true);
 
     const behavior = getBehaviorPayload();
-    const deviceId = generateDeviceId();
+    const deviceId = getOrCreateDeviceId();
 
     try {
       const { data } = await api.post('/risk-check', {

@@ -22,7 +22,7 @@ const employeeSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['employee', 'manager', 'admin', 'staff'],
+      enum: ['employee', 'admin'],
       default: 'employee',
     },
     // Current payroll bank details

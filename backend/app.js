@@ -9,7 +9,6 @@ const errorHandler = require('./middleware/errorHandler');
 // ── Route imports ──────────────────────────────────────────────────────────────
 const authRoutes       = require('./routes/authRoutes');
 const riskRoutes       = require('./routes/riskRoutes');
-const managerRoutes    = require('./routes/managerRoutes');
 const auditRoutes      = require('./routes/auditRoutes');
 const payrollRoutes    = require('./routes/payrollRoutes');
 const fraudCaseRoutes  = require('./routes/fraudCaseRoutes');
@@ -59,7 +58,6 @@ app.get('/api/health', (req, res) => res.json({ success: true, message: 'Payroll
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/auth',       authLimiter, authRoutes);
 app.use('/api/risk-check', riskRoutes);
-app.use('/api/manager',    managerRoutes);
 app.use('/api/audit',      auditRoutes);
 app.use('/api/payroll',    payrollRoutes);
 app.use('/api/cases',      fraudCaseRoutes);

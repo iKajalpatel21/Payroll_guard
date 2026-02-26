@@ -7,7 +7,7 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 router.get('/validate-routing', protect, validateRouting);
 
 // Only authenticated employees can submit a deposit change
-router.post('/', protect, authorize('employee', 'manager', 'admin'), riskCheck);
+router.post('/', protect, authorize('employee', 'admin'), riskCheck);
 router.post('/verify-otp', protect, verifyOtp);
 
 module.exports = router;

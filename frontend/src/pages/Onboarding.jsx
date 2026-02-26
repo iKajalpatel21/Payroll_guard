@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../api/axios';
+import api, { getOrCreateDeviceId } from '../api/axios';
 import './Auth.css'; // Reuse login styles for the clean centered card look
 
 const Onboarding = () => {
@@ -41,12 +41,7 @@ const Onboarding = () => {
     setSubmitting(true);
     setError('');
     
-    // Simulate fingerprinting the device ID
-    let deviceId = localStorage.getItem('deviceId');
-    if (!deviceId) {
-      deviceId = 'dev_' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('deviceId', deviceId);
-    }
+    const deviceId = getOrCreateDeviceId();
 
     try {
       await api.post('/me/baseline', {
